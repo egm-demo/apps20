@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Метро</title>
+<style>
+:root{--ink:#16181d;--paper:#f6f2e8;--panel:#fffdf7;--line:#cfc8b6;--mute:#555046;--red:#c8202a;--focus:#0b57d0}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:Bahnschrift,"Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--paper);overflow:hidden;font-size:14px}
+body.s-london{--paper:#ffffff}body.s-tokyo{--paper:#eef1f2}body.s-night{--paper:#0e131c}
+#app{position:fixed;inset:0;display:grid;grid-template-columns:1fr 340px}
+#stage{position:relative;overflow:hidden;background:var(--paper);touch-action:none;cursor:grab;min-height:0}
+#stage.drag{cursor:grabbing}
+#map{position:absolute;inset:0;width:100%;height:100%;display:block}
+#back{position:absolute;left:12px;top:10px;z-index:5;font-size:13px;color:#16181d;background:rgba(255,253,247,.94);border:1px solid #b9b19c;padding:7px 11px;border-radius:3px;text-decoration:none;min-height:36px;display:flex;align-items:center}
+body.s-night #back{color:#e8edf5;background:rgba(20,28,42,.94);border-color:#3a475c}
+#back:hover{text-decoration:underline}
+#busy{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#16181d;color:#fff;padding:12px 18px;border-radius:3px;font-size:15px;z-index:6;display:none;letter-spacing:.02em}
+#busy.on{display:block}
+#zoom{position:absolute;left:12px;bottom:12px;display:flex;flex-direction:column;gap:6px;z-index:5}
+#zoom button{width:40px;height:40px;border:1px solid #b9b19c;background:rgba(255,253,247,.96);color:#16181d;font:700 20px Bahnschrift,"Segoe UI";cursor:pointer;border-radius:3px;padding:0}
+#zoom button:hover{background:#fff;border-color:#16181d}
+body.s-night #zoom button{background:rgba(20,28,42,.96);color:#e8edf5;border-color:#3a475c}
+#hint{position:absolute;right:12px;top:10px;z-index:4;font-size:13px;color:#4a463d;background:rgba(255,253,247,.9);padding:6px 10px;border-radius:3px;max-width:calc(100% - 80px)}
+body.s-night #hint{color:#c9d3e3;background:rgba(20,28,42,.9)}
+#tip{position:absolute;z-index:7;pointer-events:none;background:#16181d;color:#fff;padding:5px 9px;font-size:13px;border-radius:3px;display:none;white-space:nowrap}
+#panel{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:14px 16px 20px;display:flex;flex-direction:column;gap:14px;min-height:0}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{flex:none}
+.brand b{font-size:22px;letter-spacing:.04em;text-transform:uppercase;line-height:1}
+.brand span{display:block;font-size:13px;color:var(--mute);margin-top:3px}
+label.lbl{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin-bottom:5px}
+input[type=text]{width:100%;font:inherit;font-size:16px;padding:8px 10px;border:1px solid #8d8671;background:#fff;color:var(--ink);border-radius:3px;min-height:38px}
+input[type=text]:focus,button:focus-visible,input[type=range]:focus-visible,input[type=checkbox]:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.row{display:flex;gap:8px}
+.btn{font:inherit;font-size:14px;min-height:38px;padding:0 12px;border:1px solid #16181d;background:#fff;color:#16181d;border-radius:3px;cursor:pointer;flex:1;white-space:nowrap}
+.btn:hover{background:#16181d;color:#fff}
+.btn.pri{background:var(--red);border-color:var(--red);color:#fff}
+.btn.pri:hover{background:#9e1820;border-color:#9e1820}
+.seg{display:flex;border:1px solid #16181d;border-radius:3px;overflow:hidden}
+.seg button{flex:1;min-height:38px;border:0;border-right:1px solid #16181d;background:#fff;color:#16181d;font:inherit;font-size:14px;cursor:pointer;padding:0 4px}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:#16181d;color:#fff}
+.seg button:hover:not([aria-pressed=true]){background:#ece7d8}
+.chk{display:flex;align-items:center;gap:9px;min-height:36px;cursor:pointer;font-size:15px}
+.chk input{width:20px;height:20px;margin:0;accent-color:#16181d}
+.rng{display:flex;align-items:center;gap:10px}
+.rng input{flex:1;accent-color:#16181d;min-height:36px}
+.rng output{width:22px;text-align:right;font-weight:700;font-size:16px}
+.sec{border-top:1px solid var(--line);padding-top:12px}
+#route{font-size:14px;line-height:1.35}
+#route .empty{color:var(--mute)}
+#route .tot{font-size:26px;font-weight:700;line-height:1.1}
+#route .tot small{font-size:14px;font-weight:400;color:var(--mute)}
+.leg{display:flex;gap:9px;margin-top:9px;align-items:flex-start}
+.leg i{flex:none;width:22px;height:22px;border-radius:50%;color:#fff;font-style:normal;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.leg div{flex:1}.leg small{color:var(--mute);display:block}
+.walk{margin:7px 0 0 31px;color:var(--mute);font-size:13px}
+#stats{font-size:13px;color:var(--mute);display:grid;grid-template-columns:1fr 1fr;gap:3px 12px}
+#stats b{color:var(--ink);font-size:15px}
+.legend{display:flex;flex-direction:column;gap:2px}
+.legend button{display:flex;align-items:center;gap:9px;background:none;border:0;font:inherit;font-size:14px;text-align:left;min-height:30px;cursor:pointer;color:var(--ink);padding:0 2px}
+.legend button:hover{text-decoration:underline}
+.legend i{flex:none;width:22px;height:22px;border-radius:50%;color:#fff;font-style:normal;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center}
+.legend span{flex:1}
+.legend em{font-style:normal;color:var(--mute);font-size:12px}
+#help{position:fixed;inset:0;background:rgba(14,19,28,.6);display:none;align-items:center;justify-content:center;z-index:20}
+#help.on{display:flex}
+#help .box{background:#fffdf7;color:#16181d;padding:20px 24px;max-width:460px;width:calc(100% - 32px);border-radius:3px;border:2px solid #16181d}
+#help h2{margin:0 0 10px;font-size:20px;text-transform:uppercase;letter-spacing:.04em}
+#help table{border-collapse:collapse;width:100%}
+#help td{padding:4px 0;font-size:14px}
+#help td:first-child{width:96px}
+kbd{font:600 12px Consolas,monospace;background:#fff;border:1px solid #16181d;border-bottom-width:2px;padding:1px 6px;border-radius:3px;color:#16181d}
+.note{font-size:12px;color:var(--mute);line-height:1.4}
+svg text{user-select:none}
+@media(max-width:820px){
+ body{overflow:auto}
+ #app{position:static;display:block;height:auto}
+ #stage{height:62vh;min-height:340px}
+ #panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+ #hint{display:none}
+ #back{font-size:12px}
+}
+@media(max-width:1100px){#hint{display:none}}
+#hint{display:none!important}
+</style>
+</head>
+<body class="s-moscow">
+<div id="app">
+ <div id="stage">
+  <a id="back" href="../index.html">← Все приложения</a>
+  <svg id="map" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Схема метро"></svg>
+  <div id="busy">Строю схему…</div>
+  <div id="zoom"><button id="zin" title="Приблизить (+)" aria-label="Приблизить">+</button><button id="zout" title="Отдалить (−)" aria-label="Отдалить">−</button><button id="zfit" title="Вся схема (F)" aria-label="Вся схема" style="font-size:14px">F</button></div>
+  <div id="hint">Нажмите на две станции — получите маршрут. Колесо — масштаб, перетаскивание — сдвиг.</div>
+  <div id="tip"></div>
+ </div>
+ <aside id="panel">
+  <div class="brand">
+   <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#c8202a"/><path d="M9 29V11l11 12 11-12v18" fill="none" stroke="#fff" stroke-width="4.2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+   <div><b>Метро</b><span>Схема города, которого нет</span></div>
+  </div>
+  <div><label class="lbl" for="cname">Название города</label><input type="text" id="cname" maxlength="32" autocomplete="off"></div>
+  <div>
+   <label class="lbl" for="seed">Сид</label>
+   <div class="row"><input type="text" id="seed" maxlength="24" autocomplete="off" style="flex:1"><button class="btn pri" id="rnd" style="flex:none;width:112px" title="Случайно (N)">Случайно</button></div>
+  </div>
+  <div class="sec">
+   <label class="lbl">Размер города</label>
+   <div class="seg" id="size"><button data-v="S">Малый</button><button data-v="M">Средний</button><button data-v="L">Большой</button></div>
+  </div>
+  <div>
+   <label class="lbl" for="lines">Линий</label>
+   <div class="rng"><input type="range" id="lines" min="2" max="8" step="1"><output id="linesO"></output></div>
+  </div>
+  <div>
+   <label class="lbl">Станций на линии</label>
+   <div class="seg" id="density"><button data-v="rare">Реже</button><button data-v="normal">Обычно</button><button data-v="dense">Чаще</button></div>
+  </div>
+  <div class="row" style="gap:18px;flex-wrap:wrap">
+   <label class="chk"><input type="checkbox" id="ring"> Кольцо</label>
+   <label class="chk"><input type="checkbox" id="river"> Река</label>
+  </div>
+  <div>
+   <label class="lbl">Стиль схемы</label>
+   <div class="seg" id="style"><button data-v="moscow">Москва</button><button data-v="london">Лондон</button><button data-v="tokyo">Токио</button><button data-v="night">Ночной</button></div>
+  </div>
+  <label class="chk"><input type="checkbox" id="live"> Живое метро — поезда в пути</label>
+  <div class="sec">
+   <label class="lbl">Маршрут</label>
+   <div id="route"></div>
+  </div>
+  <div class="sec">
+   <label class="lbl">Линии</label>
+   <div class="legend" id="legend"></div>
+  </div>
+  <div class="sec" id="stats"></div>
+  <div class="row"><button class="btn" id="exSvg" title="Скачать SVG (E)">Скачать SVG</button><button class="btn" id="exPng" title="Скачать PNG (P)">Скачать PNG</button></div>
+  <div class="row"><button class="btn" id="helpBtn">Клавиши (?)</button><button class="btn" id="reset">Сбросить всё</button></div>
+  <div class="note" id="note"></div>
+ </aside>
+</div>
+<div id="help"><div class="box" role="dialog" aria-label="Клавиши">
+ <h2>Горячие клавиши</h2>
+ <table>
+  <tr><td><kbd>N</kbd> <kbd>Пробел</kbd></td><td>новая схема (случайный сид)</td></tr>
+  <tr><td><kbd>L</kbd></td><td>живое метро — вкл/выкл</td></tr>
+  <tr><td><kbd>1</kbd>–<kbd>4</kbd></td><td>стиль: Москва, Лондон, Токио, Ночной</td></tr>
+  <tr><td><kbd>R</kbd></td><td>кольцо — вкл/выкл</td></tr>
+  <tr><td><kbd>W</kbd></td><td>река — вкл/выкл</td></tr>
+  <tr><td><kbd>+</kbd> <kbd>−</kbd> <kbd>F</kbd></td><td>масштаб, вся схема целиком</td></tr>
+  <tr><td><kbd>E</kbd> <kbd>P</kbd></td><td>скачать SVG / PNG</td></tr>
+  <tr><td><kbd>Esc</kbd></td><td>сбросить маршрут, закрыть окно</td></tr>
+  <tr><td><kbd>?</kbd></td><td>эта подсказка</td></tr>
+ </table>
+ <p class="note" style="margin-top:12px">Один сид — одна и та же схема. Среди поездов в живом режиме ходит один золотой: наведите на него курсор.</p>
+ <div class="row" style="margin-top:8px"><button class="btn" id="helpClose">Закрыть</button></div>
+</div></div>
+<script>
+/* ================= ГЕНЕРАТОР СХЕМЫ (чистый JS, без DOM) ================= */
+const CELL = 36;
+const SIZES = { S: { W: 26, H: 17, max: 5 }, M: { W: 36, H: 23, max: 7 }, L: { W: 48, H: 30, max: 8 } };
+const DIRS = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+const SQ2 = Math.SQRT2;
+const LABEL_FS = 13, LABEL_LH = 15;
+const R_PLAIN = 8, R_INTER = 11, HW_MAX = 5;
+
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hashSeed(s) { s = String(s); let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+
+class Heap {
+  constructor() { this.k = []; this.v = []; }
+  get size() { return this.k.length; }
+  push(key, val) {
+    const k = this.k, v = this.v; let i = k.length; k.push(key); v.push(val);
+    while (i > 0) { const p = (i - 1) >> 1; if (k[p] <= key) break; k[i] = k[p]; v[i] = v[p]; i = p; }
+    k[i] = key; v[i] = val;
+  }
+  pop() {
+    const k = this.k, v = this.v; const top = v[0]; const lk = k.pop(), lv = v.pop(); const n = k.length;
+    if (n > 0) {
+      let i = 0;
+      for (;;) { let c = 2 * i + 1; if (c >= n) break; if (c + 1 < n && k[c + 1] < k[c]) c++; if (k[c] >= lk) break; k[i] = k[c]; v[i] = v[c]; i = c; }
+      k[i] = lk; v[i] = lv;
+    }
+    return top;
+  }
+}
+
+/* ---------- ширина текста (оценка с запасом, не зависит от машины) ---------- */
+const NARROW = 'ильтьъ.,-', WIDE = 'жшщюыфмЖШЩЮЫМФ';
+function textW(s) {
+  let w = 0;
+  for (const ch of s) {
+    if (ch === ' ') w += 4.4;
+    else if (NARROW.indexOf(ch) >= 0) w += 5.6;
+    else if (WIDE.indexOf(ch) >= 0) w += 10.6;
+    else if (ch !== ch.toLowerCase()) w += 9.4;
+    else w += 7.6;
+  }
+  return Math.ceil(w);
+}
+function splitName(name) {
+  const ws = name.split(' ');
+  if (ws.length < 2) return null;
+  let best = null, bw = 1e9;
+  for (let i = 1; i < ws.length; i++) {
+    const a = ws.slice(0, i).join(' '), b = ws.slice(i).join(' ');
+    const w = Math.max(textW(a), textW(b));
+    if (w < bw) { bw = w; best = [a, b]; }
+  }
+  return best;
+}
+
+/* ---------- названия ---------- */
+const ADJ = [['Старый', 'Старая', 'Старое'], ['Новый', 'Новая', 'Новое'], ['Верхний', 'Верхняя', 'Верхнее'], ['Нижний', 'Нижняя', 'Нижнее'], ['Большой', 'Большая', 'Большое'], ['Малый', 'Малая', 'Малое'], ['Красный', 'Красная', 'Красное'], ['Зелёный', 'Зелёная', 'Зелёное'], ['Белый', 'Белая', 'Белое'], ['Чёрный', 'Чёрная', 'Чёрное'], ['Тихий', 'Тихая', 'Тихое'], ['Дальний', 'Дальняя', 'Дальнее'], ['Светлый', 'Светлая', 'Светлое'], ['Сосновый', 'Сосновая', 'Сосновое'], ['Берёзовый', 'Берёзовая', 'Берёзовое'], ['Дубовый', 'Дубовая', 'Дубовое'], ['Липовый', 'Липовая', 'Липовое'], ['Каменный', 'Каменная', 'Каменное'], ['Песчаный', 'Песчаная', 'Песчаное'], ['Лесной', 'Лесная', 'Лесное'], ['Рыбацкий', 'Рыбацкая', 'Рыбацкое'], ['Кузнечный', 'Кузнечная', 'Кузнечное'], ['Гончарный', 'Гончарная', 'Гончарное'], ['Мельничный', 'Мельничная', 'Мельничное'], ['Солнечный', 'Солнечная', 'Солнечное'], ['Золотой', 'Золотая', 'Золотое'], ['Серебряный', 'Серебряная', 'Серебряное'], ['Луговой', 'Луговая', 'Луговое'], ['Сокольничий', 'Сокольничья', 'Сокольничье'], ['Волчий', 'Волчья', 'Волчье'], ['Лисий', 'Лисья', 'Лисье'], ['Заячий', 'Заячья', 'Заячье'], ['Журавлиный', 'Журавлиная', 'Журавлиное'], ['Ольховый', 'Ольховая', 'Ольховое'], ['Ясный', 'Ясная', 'Ясное'], ['Глухой', 'Глухая', 'Глухое'], ['Широкий', 'Широкая', 'Широкое'], ['Крутой', 'Крутая', 'Крутое'], ['Гусиный', 'Гусиная', 'Гусиное']];
+const NOUN_M = ['Бор', 'Затон', 'Луг', 'Мост', 'Сад', 'Рынок', 'Посад', 'Холм', 'Вал', 'Двор', 'Лес', 'Брод', 'Овраг', 'Завод', 'Городок', 'Пруд', 'Мыс', 'Курган', 'Ручей', 'Остров', 'Спуск', 'Хутор', 'Посёлок', 'Тракт', 'Перекрёсток', 'Пустырь'];
+const NOUN_F = ['Роща', 'Слобода', 'Гора', 'Поляна', 'Застава', 'Пристань', 'Горка', 'Балка', 'Дубрава', 'Усадьба', 'Кузница', 'Мельница', 'Заимка', 'Лощина', 'Просека', 'Плотина', 'Околица'];
+const NOUN_N = ['Поле', 'Село', 'Озеро', 'Подворье', 'Урочище', 'Займище', 'Раздолье'];
+const TITLES = ['Академика', 'Адмирала', 'Маршала', 'Генерала', 'Профессора', 'Инженера', 'Поэта', 'Конструктора', 'Композитора', 'Капитана', 'Доктора', 'Архитектора', 'Лётчика', 'Полярника'];
+const SURN = ['Лызлова', 'Бережкова', 'Ширяева', 'Гордеева', 'Рокотова', 'Сенявина', 'Баженова', 'Кузьмина', 'Нагибина', 'Воронцова', 'Хлебникова', 'Пронина', 'Зимина', 'Лаврова', 'Касаткина', 'Тропинина', 'Мельникова', 'Соколова', 'Голубева', 'Фёдорова', 'Бирюкова', 'Ласточкина', 'Дроздова', 'Суворова', 'Чернова', 'Осокина', 'Ерохина', 'Лобанова', 'Крутикова', 'Мироненко', 'Шаблыкина', 'Радищева', 'Верещагина', 'Таранова', 'Жилина', 'Ушакова', 'Громова', 'Савельева', 'Тихомирова', 'Платонова', 'Беляева', 'Рябова', 'Стрельцова', 'Горелова', 'Куликова', 'Лебедева', 'Макарова', 'Зайцева'];
+const KINDS = ['Улица', 'Проспект', 'Бульвар', 'Площадь'];
+const GEN_TH = ['Мира', 'Труда', 'Космонавтов', 'Строителей', 'Энтузиастов', 'Металлургов', 'Железнодорожников', 'Мастеров', 'Пятилетки', 'Победы', 'Дружбы', 'Свободы', 'Первопроходцев', 'Садоводов', 'Рабочих', 'Шахтёров', 'Печатников', 'Ткачей', 'Лётчиков', 'Учителей', 'Лесоводов', 'Изобретателей', 'Ветеранов', 'Мореходов'];
+const TOPO = ['Сокольники', 'Черёмушки', 'Лужники', 'Лосиный Остров', 'Берёзки', 'Липки', 'Сосенки', 'Дубки', 'Ольховка', 'Кузнецы', 'Гончары', 'Мельники', 'Рыбаки', 'Журавли', 'Рябиново', 'Малиновка', 'Калиновка', 'Дубровка', 'Ключики', 'Ручьи', 'Холмы', 'Выселки', 'Подлесье', 'Заречье', 'Подгорное', 'Новосёлки', 'Кленовка', 'Лисички', 'Воробьи', 'Соловьи', 'Голубино', 'Сухарево', 'Орехово', 'Грибово', 'Клюквино', 'Бобры', 'Белки', 'Чайки', 'Ласточкино', 'Васильки', 'Ромашково', 'Тополя', 'Ивняки', 'Осинки', 'Камыши', 'Ракитное', 'Яблоневка', 'Вишнёвка'];
+const ADJF = ['Заводская', 'Парковая', 'Садовая', 'Школьная', 'Фабричная', 'Университетская', 'Вокзальная', 'Станционная', 'Ярмарочная', 'Мельничная', 'Кузнечная', 'Гончарная', 'Рыбацкая', 'Лесная', 'Луговая', 'Спортивная', 'Политехническая', 'Академическая', 'Лётная', 'Железнодорожная', 'Институтская', 'Юбилейная', 'Октябрьская', 'Первомайская', 'Ботаническая', 'Бульварная', 'Литейная', 'Типографская', 'Кирпичная', 'Угольная', 'Цветочная', 'Хлебная'];
+const PLACES = ['Ботанический Сад', 'Зоопарк', 'Аэропорт', 'Стадион', 'Ипподром', 'Обсерватория', 'Планетарий', 'Университет', 'Консерватория', 'Птичий Рынок', 'Цирк', 'Технопарк', 'Депо', 'Большой Базар', 'Водонапорная Башня', 'Старая Станция', 'Оранжерея', 'Маяк'];
+const RIVER = ['Речной Затон', 'Набережная', 'Речной Вокзал', 'Старый Мост', 'Затонская', 'Пристань', 'Заречная', 'Устье', 'Мостовая', 'Паромная', 'Стрелка', 'Плотина', 'Причальная', 'Низовая', 'Речная Слобода', 'Рыбачья Пристань', 'Водники', 'Бакенная', 'Перекат', 'Излучина', 'Переправа', 'Купеческая Пристань', 'Лодочная', 'Мельничный Брод'];
+const CENTER = ['Центральная', 'Городская Площадь', 'Театральная', 'Ратуша', 'Старый Город', 'Соборная', 'Гостиный Двор', 'Торговая Площадь', 'Главный Вокзал', 'Площадь Революции', 'Часовая Башня', 'Оперная', 'Городской Сад', 'Биржа', 'Ярмарка', 'Университетская Площадь', 'Площадь Согласия'];
+const LINE_NAMES = ['Заводская', 'Речная', 'Университетская', 'Садовая', 'Лесная', 'Парковая', 'Железнодорожная', 'Бульварная', 'Набережная', 'Мельничная', 'Академическая', 'Литейная', 'Рыбацкая', 'Луговая', 'Северная', 'Южная', 'Восточная', 'Западная'];
+const CITY_PRE = ['Верхне', 'Нижне', 'Ново', 'Старо', 'Красно', 'Бело', 'Зелено', 'Черно', 'Горно', 'Светло', 'Тихо', 'Камено', 'Солнечно'];
+const CITY_SUF = ['горск', 'речье', 'озёрск', 'полье', 'борск', 'дольск', 'ключинск', 'мостовск'];
+const CITY_FIX = ['Ясногорск', 'Заволжье', 'Берёзовка-на-Туре', 'Соколиная Гора', 'Липецк-Малый', 'Сосногорск', 'Дубравный', 'Светлоград', 'Тихорецк', 'Малиновец'];
+
+function genCityName(seed) {
+  const r = mulberry32(hashSeed('city' + seed));
+  const pick = a => a[Math.floor(r() * a.length)];
+  if (r() < 0.2) return pick(CITY_FIX);
+  return pick(CITY_PRE) + pick(CITY_SUF);
+}
+
+function makeNamer(nr) {
+  const pick = a => a[Math.floor(nr() * a.length)];
+  const adjNoun = () => {
+    const g = nr(); const a = pick(ADJ);
+    if (g < 0.4) return a[0] + ' ' + pick(NOUN_M);
+    if (g < 0.8) return a[1] + ' ' + pick(NOUN_F);
+    return a[2] + ' ' + pick(NOUN_N);
+  };
+  const street = () => {
+    const k = pick(KINDS), g = nr();
+    if (g < 0.6) return k + ' ' + pick(TITLES) + ' ' + pick(SURN);
+    if (g < 0.8) return k + ' ' + pick(SURN);
+    return k + ' ' + pick(GEN_TH);
+  };
+  return function (ctx, maxLen, used) {
+    for (let k = 0; k < 80; k++) {
+      let nm; const r = nr();
+      if (ctx.river && r < 0.55) nm = pick(RIVER);
+      else if (ctx.center && r < 0.5) nm = pick(CENTER);
+      else {
+        const q = nr();
+        if (ctx.edge && q < 0.5) nm = pick(TOPO);
+        else if (q < 0.30) nm = adjNoun();
+        else if (q < 0.52) nm = street();
+        else if (q < 0.72) nm = pick(TOPO);
+        else if (q < 0.90) nm = pick(ADJF);
+        else nm = pick(PLACES);
+      }
+      if (nm.length > maxLen || used.has(nm)) continue;
+      return nm;
+    }
+    for (let k = 0; k < 200; k++) { const nm = adjNoun(); if (!used.has(nm) && nm.length <= Math.max(maxLen, 20)) return nm; }
+    return pick(TOPO) + ' ' + (used.size + 1);
+  };
+}
+
+/* ---------- геометрия для проверок ---------- */
+function rectsOverlap(a, b, g) { g = g || 0; return a.x < b.x + b.w + g && b.x < a.x + a.w + g && a.y < b.y + b.h + g && b.y < a.y + a.h + g; }
+// расстояние от отрезка до прямоугольника (точное)
+function segRectDist(x1, y1, x2, y2, r) {
+  const rx2 = r.x + r.w, ry2 = r.y + r.h;
+  // пересечение отрезка и прямоугольника
+  let t0 = 0, t1 = 1; const dx = x2 - x1, dy = y2 - y1;
+  const clip = (p, q) => { if (p === 0) return q >= 0; const t = q / p; if (p < 0) { if (t > t1) return false; if (t > t0) t0 = t; } else { if (t < t0) return false; if (t < t1) t1 = t; } return true; };
+  if (clip(-dx, x1 - r.x) && clip(dx, rx2 - x1) && clip(-dy, y1 - r.y) && clip(dy, ry2 - y1)) return 0;
+  const ptSeg = (px, py) => { const l2 = dx * dx + dy * dy; let t = l2 ? ((px - x1) * dx + (py - y1) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy)); };
+  const ptRect = (px, py) => { const cx = Math.max(r.x, Math.min(rx2, px)), cy = Math.max(r.y, Math.min(ry2, py)); return Math.hypot(px - cx, py - cy); };
+  return Math.min(ptRect(x1, y1), ptRect(x2, y2), ptSeg(r.x, r.y), ptSeg(rx2, r.y), ptSeg(r.x, ry2), ptSeg(rx2, ry2));
+}
+function circleRectDist(cx, cy, r) { const px = Math.max(r.x, Math.min(r.x + r.w, cx)), py = Math.max(r.y, Math.min(r.y + r.h, cy)); return Math.hypot(cx - px, cy - py); }
+function ptSegDist(px, py, x1, y1, x2, y2) { const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy; let t = l2 ? ((px - x1) * dx + (py - y1) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy)); }
+
+/* ---------- одна попытка построения ---------- */
+function tryBuild(o, att) {
+  const rng = mulberry32(hashSeed(o.seed + '#' + att));
+  const R = () => rng();
+  const sz = SIZES[o.size] || SIZES.M, W = sz.W, H = sz.H, N = W * H;
+  const nL = Math.max(2, Math.min(o.lines | 0, sz.max));
+  const X = n => n % W, Y = n => (n / W) | 0, ID = (x, y) => y * W + x;
+  const owners = Array.from({ length: N }, () => []);
+  const stAt = new Int32Array(N).fill(-1);
+  const stD2 = new Float32Array(N).fill(1e9);
+  const edges = new Set();
+  const ek = (a, b) => a < b ? a * N + b : b * N + a;
+  const noise = new Float32Array(N); for (let i = 0; i < N; i++) noise[i] = R() * 0.35;
+  const lines = [], stations = [];
+  let bad = null;
+  const cx = Math.round(W / 2), cy = Math.round(H / 2);
+
+  /* река */
+  let river = [];
+  const riverD = new Float32Array(N).fill(99);
+  if (o.river) {
+    const horiz = R() < 0.72, ext = horiz ? W : H, per = horiz ? H : W;
+    const off0 = per * (0.5 + (R() * 0.44 - 0.22)), amp = per * (0.08 + R() * 0.1), f = 0.7 + R() * 0.9, ph = R() * 6.28;
+    const ctrl = [], K = 14;
+    for (let k = 0; k <= K; k++) { const t = -0.1 + 1.2 * k / K; const a = t * ext, b = off0 + amp * Math.sin(6.283 * t * f + ph) + (R() - 0.5) * per * 0.05; ctrl.push(horiz ? [a, b] : [b, a]); }
+    for (let i = 0; i < ctrl.length - 1; i++) {
+      const p0 = ctrl[Math.max(0, i - 1)], p1 = ctrl[i], p2 = ctrl[i + 1], p3 = ctrl[Math.min(ctrl.length - 1, i + 2)];
+      for (let s = 0; s < 6; s++) {
+        const t = s / 6, t2 = t * t, t3 = t2 * t;
+        const f2 = (a, b, c, d) => 0.5 * ((2 * b) + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+        river.push([f2(p0[0], p1[0], p2[0], p3[0]), f2(p0[1], p1[1], p2[1], p3[1])]);
+      }
+    }
+    river.push(ctrl[ctrl.length - 1]);
+    for (let n = 0; n < N; n++) {
+      const x = X(n), y = Y(n); let m = 99;
+      for (let i = 0; i < river.length - 1; i++) { const d = ptSegDist(x, y, river[i][0], river[i][1], river[i + 1][0], river[i + 1][1]); if (d < m) m = d; }
+      riverD[n] = m;
+    }
+  }
+
+  function mkStation(n) {
+    if (stAt[n] >= 0) return stAt[n];
+    if (stD2[n] < 4) bad = bad || 'близкие станции';
+    const id = stations.length; stations.push({ id, node: n }); stAt[n] = id;
+    const x0 = X(n), y0 = Y(n);
+    for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
+      const x = x0 + dx, y = y0 + dy; if (x < 0 || y < 0 || x >= W || y >= H) continue;
+      const m = ID(x, y), d2 = dx * dx + dy * dy; if (d2 < stD2[m]) stD2[m] = d2;
+    }
+    return id;
+  }
+  function straightAt(L, i) {
+    const P = L.path, n = P.length;
+    let a, b;
+    if (L.closed) { if (i === 0 || i === n - 1) return false; a = P[i - 1]; b = P[i + 1]; }
+    else { if (i <= 0 || i >= n - 1) return false; a = P[i - 1]; b = P[i + 1]; }
+    return X(P[i]) - X(a) === X(b) - X(P[i]) && Y(P[i]) - Y(a) === Y(b) - Y(P[i]);
+  }
+  function convertible(v) {
+    const ow = owners[v]; if (ow.length !== 1 || stAt[v] >= 0 || stD2[v] < 4) return false;
+    const L = lines[ow[0]]; if (!L.pos) return false;
+    return straightAt(L, L.pos.get(v));
+  }
+  function freeNode(x, y) {
+    x = Math.max(1, Math.min(W - 2, Math.round(x))); y = Math.max(1, Math.min(H - 2, Math.round(y)));
+    for (let r = 0; r <= 6; r++) {
+      let best = -1, bd = 1e9;
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const xx = x + dx, yy = y + dy; if (xx < 1 || yy < 1 || xx > W - 2 || yy > H - 2) continue;
+        const n = ID(xx, yy); if (owners[n].length || stD2[n] < 6) continue;
+        let near = false;
+        for (const [ax, ay] of DIRS) { const m = ID(xx + ax, yy + ay); if (xx + ax >= 0 && yy + ay >= 0 && xx + ax < W && yy + ay < H && owners[m].length) { near = true; break; } }
+        if (near) continue;
+        const d = dx * dx + dy * dy; if (d < bd) { bd = d; best = n; }
+      }
+      if (best >= 0) return best;
+    }
+    return -1;
+  }
+
+  /* A* по восьмиугольной сетке */
+  function astar(s, t, li, sdir) {
+    const g = new Float32Array(N * 9).fill(1e9), from = new Int32Array(N * 9).fill(-1), closed = new Uint8Array(N * 9);
+    const pen = new Float32Array(N).fill(NaN);
+    const tx = X(t), ty = Y(t);
+    const hf = n => { const dx = Math.abs(X(n) - tx), dy = Math.abs(Y(n) - ty); return (Math.max(dx, dy) - Math.min(dx, dy)) + SQ2 * Math.min(dx, dy); };
+    const nodePen = v => {
+      if (!Number.isNaN(pen[v])) return pen[v];
+      let p = 0; const ow = owners[v];
+      if (ow.length) {
+        if (ow.includes(li)) return pen[v] = -1;
+        if (stAt[v] >= 0) { if (ow.length >= 3) return pen[v] = -1; p += 1.3; }
+        else if (convertible(v)) p += 2.2; else return pen[v] = -1;
+      }
+      const vx = X(v), vy = Y(v);
+      for (let k = 0; k < 8; k++) {
+        const wx = vx + DIRS[k][0], wy = vy + DIRS[k][1]; if (wx < 0 || wy < 0 || wx >= W || wy >= H) continue;
+        const w = ID(wx, wy), ow2 = owners[w];
+        if (ow2.length) p += ow2.includes(li) ? 0.7 : 0.45;
+        if (stAt[w] >= 0 && w !== t && v !== t && !ow.length) p += 1.2;
+      }
+      if (riverD[v] < 0.8) p += 0.8;
+      return pen[v] = p;
+    };
+    const s0 = s * 9 + sdir; g[s0] = 0;
+    const heap = new Heap(); heap.push(hf(s), s0);
+    while (heap.size) {
+      const st = heap.pop(); if (closed[st]) continue; closed[st] = 1;
+      const u = (st / 9) | 0, d = st % 9;
+      if (u === t) {
+        const path = []; let c = st;
+        while (c >= 0) { path.push((c / 9) | 0); c = from[c]; }
+        return path.reverse();
+      }
+      const ux = X(u), uy = Y(u), gu = g[st];
+      for (let nd = 0; nd < 8; nd++) {
+        let turn = 0;
+        if (d !== 8) { turn = Math.abs(d - nd); if (turn > 4) turn = 8 - turn; if (turn >= 3) continue; }
+        const dx = DIRS[nd][0], dy = DIRS[nd][1], vx = ux + dx, vy = uy + dy;
+        if (vx < 0 || vy < 0 || vx >= W || vy >= H) continue;
+        const v = ID(vx, vy);
+        if (edges.has(ek(u, v))) continue;
+        if (dx !== 0 && dy !== 0 && edges.has(ek(ID(ux + dx, uy), ID(ux, uy + dy)))) continue;
+        const p = nodePen(v); if (p < 0) continue;
+        const cost = gu + (dx !== 0 && dy !== 0 ? SQ2 : 1) + (turn === 1 ? 1.3 : turn === 2 ? 4.5 : 0) + p + noise[v];
+        const vs = v * 9 + nd;
+        if (cost < g[vs]) { g[vs] = cost; from[vs] = st; heap.push(cost + hf(v), vs); }
+      }
+    }
+    return null;
+  }
+  const dirOf = (a, b) => { const dx = Math.sign(X(b) - X(a)), dy = Math.sign(Y(b) - Y(a)); return DIRS.findIndex(d => d[0] === dx && d[1] === dy); };
+  function commit(li, nodes) {
+    for (let i = 0; i < nodes.length; i++) {
+      const n = nodes[i];
+      if (i > 0) edges.add(ek(nodes[i - 1], n));
+      if (!owners[n].includes(li)) {
+        if (owners[n].length > 0 && stAt[n] < 0) mkStation(n);
+        owners[n].push(li);
+      }
+    }
+  }
+  function finishLine(li) {
+    const L = lines[li]; L.pos = new Map();
+    L.path.forEach((n, i) => { if (!L.pos.has(n)) L.pos.set(n, i); });
+    if (!L.closed) { mkStation(L.path[0]); mkStation(L.path[L.path.length - 1]); }
+  }
+
+  /* кольцо */
+  if (o.ring) {
+    const a = Math.max(4, Math.round(W * 0.17)), b = Math.max(3, Math.round(H * 0.21));
+    let d = Math.max(2, Math.round(Math.min(a, b) * 0.5)); if (a - d < 1) d = a - 1; if (b - d < 1) d = b - 1;
+    const V = [[cx - a + d, cy - b], [cx + a - d, cy - b], [cx + a, cy - b + d], [cx + a, cy + b - d], [cx + a - d, cy + b], [cx - a + d, cy + b], [cx - a, cy + b - d], [cx - a, cy - b + d]];
+    const seq = [[cx, cy - b], V[1], V[2], V[3], V[4], V[5], V[6], V[7], V[0], [cx, cy - b]];
+    const nodes = [ID(seq[0][0], seq[0][1])];
+    for (let i = 1; i < seq.length; i++) {
+      let [x, y] = seq[i - 1]; const [tx, ty] = seq[i], sx = Math.sign(tx - x), sy = Math.sign(ty - y);
+      while (x !== tx || y !== ty) { x += sx; y += sy; nodes.push(ID(x, y)); }
+    }
+    lines.push({ path: nodes, closed: true, isRing: true });
+    commit(0, nodes); finishLine(0);
+  }
+
+  /* радиальные линии */
+  const th0 = R() * Math.PI;
+  const base = lines.length;
+  for (let i = 0; i < nL; i++) {
+    const li = lines.length;
+    const th = th0 + i * Math.PI / nL + (R() - 0.5) * 0.5 * Math.PI / nL;
+    const ux = Math.cos(th), uy = Math.sin(th), qx = -uy, qy = ux;
+    const p = (R() * 2 - 1) * 0.14 * H * (nL > 4 ? 1.4 : 1);
+    const ccx = cx + qx * p, ccy = cy + qy * p;
+    const tmax = (sx, sy) => { let t = 1e9; if (sx > 1e-6) t = Math.min(t, (W - 2 - ccx) / sx); else if (sx < -1e-6) t = Math.min(t, (1 - ccx) / sx); if (sy > 1e-6) t = Math.min(t, (H - 2 - ccy) / sy); else if (sy < -1e-6) t = Math.min(t, (1 - ccy) / sy); return t; };
+    const tA = tmax(-ux, -uy) * (0.72 + R() * 0.26), tB = tmax(ux, uy) * (0.72 + R() * 0.26);
+    const A = freeNode(ccx - ux * tA, ccy - uy * tA);
+    if (A < 0) return { fail: 'терминал' };
+    lines.push({ path: [A], closed: false });
+    commit(li, [A]);
+    const Bn = freeNode(ccx + ux * tB, ccy + uy * tB);
+    if (Bn < 0) return { fail: 'терминал' };
+    let mid = -1;
+    if (R() < 0.7) mid = freeNode(ccx + (R() - 0.5) * W * 0.22, ccy + (R() - 0.5) * H * 0.22);
+    const L = lines[li];
+    const legs = mid >= 0 && mid !== A && mid !== Bn ? [mid, Bn] : [Bn];
+    let cur = A, sdir = 8;
+    for (const tgt of legs) {
+      const seg = astar(cur, tgt, li, sdir);
+      if (!seg) return { fail: 'маршрут' };
+      commit(li, seg);
+      for (let k = 1; k < seg.length; k++) L.path.push(seg[k]);
+      sdir = dirOf(seg[seg.length - 2], seg[seg.length - 1]); cur = tgt;
+    }
+    finishLine(li);
+    if (bad) return { fail: bad };
+  }
+  if (bad) return { fail: bad };
+
+  /* связность линий через пересадки */
+  const par = lines.map((_, i) => i); const fd = x => par[x] === x ? x : (par[x] = fd(par[x]));
+  for (const s of stations) { const ow = owners[s.node]; for (let k = 1; k < ow.length; k++) par[fd(ow[k])] = fd(ow[0]); }
+  for (let i = 1; i < lines.length; i++) if (fd(i) !== fd(0)) return { fail: 'линии не связаны' };
+
+  /* станции по линиям */
+  const gapBase = { rare: 4.6, normal: 3.5, dense: 2.7 }[o.density] || 3.5;
+  for (let li = 0; li < lines.length; li++) {
+    const L = lines[li], P = L.path, n = P.length, closed = L.closed, m = closed ? n - 1 : n;
+    const nodeAt = j => closed ? P[j % m] : P[j];
+    let req = []; for (let i = 0; i < m; i++) if (stAt[P[i]] >= 0) req.push(i);
+    if (closed && req.length === 0) { mkStation(P[0]); req.push(0); }
+    if (!closed && req.length < 2) return { fail: 'мало узлов' };
+    const cl = [0]; const ext = closed ? m + 1 + (req[0]) + 1 : n;
+    for (let j = 1; j < (closed ? m + m : n); j++) { const a = nodeAt(j - 1), b = nodeAt(j); cl.push(cl[j - 1] + (X(a) !== X(b) && Y(a) !== Y(b) ? SQ2 : 1)); }
+    const segsIdx = [];
+    for (let k = 0; k < req.length - 1; k++) segsIdx.push([req[k], req[k + 1]]);
+    if (closed) segsIdx.push([req[req.length - 1], req[0] + m]);
+    for (const [i0, i1] of segsIdx) {
+      const Ls = cl[i1] - cl[i0]; const gap = gapBase * (0.88 + R() * 0.24);
+      const k = Math.max(0, Math.round(Ls / gap) - 1);
+      for (let q = 1; q <= k; q++) {
+        const target = cl[i0] + Ls * q / (k + 1);
+        const cands = [];
+        for (let j = i0 + 1; j < i1; j++) { const dd = Math.abs(cl[j] - target); if (dd <= 1.7) cands.push([dd, j]); }
+        cands.sort((u, v) => u[0] - v[0]);
+        for (const [, j] of cands) {
+          const nd = nodeAt(j);
+          if (stAt[nd] >= 0 || owners[nd].length !== 1 || stD2[nd] < 4) continue;
+          const a = nodeAt(j - 1), b = nodeAt(j + 1);
+          if (!(X(nd) - X(a) === X(b) - X(nd) && Y(nd) - Y(a) === Y(b) - Y(nd))) continue;
+          if (cl[i1] - cl[j] < 1.7 || cl[j] - cl[i0] < 1.7) continue;
+          mkStation(nd); break;
+        }
+      }
+    }
+    if (bad) return { fail: bad };
+  }
+
+  /* итоговые структуры */
+  const PX = n => [X(n) * CELL, Y(n) * CELL];
+  for (const s of stations) { const [x, y] = PX(s.node); s.x = x; s.y = y; s.lines = owners[s.node].slice(); s.inter = s.lines.length > 1; s.walk = 3 + (s.id * 7 % 3) + (s.lines.some(l => lines[l].isRing) ? 1 : 0); }
+  for (let li = 0; li < lines.length; li++) {
+    const L = lines[li], P = L.path, closed = L.closed, m = closed ? P.length - 1 : P.length;
+    L.id = li; L.pathPx = P.map(PX);
+    const idx = []; for (let i = 0; i < m; i++) if (stAt[P[i]] >= 0) idx.push(i);
+    L.stPathIdx = idx; L.ord = idx.map(i => stAt[P[i]]);
+    if (L.ord.length < 4) return { fail: 'мало станций' };
+    const cl = [0]; for (let j = 1; j < P.length; j++) { const a = P[j - 1], b = P[j]; cl.push(cl[j - 1] + (X(a) !== X(b) && Y(a) !== Y(b) ? SQ2 : 1)); }
+    L.cl = cl; L.len = cl[cl.length - 1];
+    L.edgeLen = idx.map((i, k) => { if (k < idx.length - 1) return cl[idx[k + 1]] - cl[i]; return closed ? cl[cl.length - 1] - cl[i] : 0; });
+    L.stCl = idx.map(i => cl[i]);
+    if (!closed) L.edgeLen.pop();
+    L.edgeMin = L.edgeLen.map(l => Math.max(2, Math.round(1.2 + 0.42 * l)));
+    buildRP(L);
+  }
+  // кольцевая линия — первая
+  lines.forEach((L, i) => { L.num = L.isRing ? 0 : (i - base + 1); });
+
+  /* значки номеров на концах линий */
+  const segs = [];
+  lines.forEach(L => { for (let i = 0; i < L.pathPx.length - 1; i++) { const a = L.pathPx[i], b = L.pathPx[i + 1]; segs.push({ x1: a[0], y1: a[1], x2: b[0], y2: b[1], li: L.id, i }); } });
+  const badges = [];
+  lines.forEach(L => {
+    if (L.closed) return; L.badges = [];
+    [0, 1].forEach(end => {
+      const P = L.pathPx, a = end === 0 ? P[0] : P[P.length - 1], b = end === 0 ? P[1] : P[P.length - 2];
+      const dx = a[0] - b[0], dy = a[1] - b[1], l = Math.hypot(dx, dy);
+      const c = [a[0] + dx / l * 27, a[1] + dy / l * 27];
+      let okb = true;
+      for (const s of segs) { if (ptSegDist(c[0], c[1], s.x1, s.y1, s.x2, s.y2) < 12 + HW_MAX + 3) { okb = false; break; } }
+      if (okb) for (const s of stations) { if (Math.hypot(s.x - c[0], s.y - c[1]) < 12 + R_INTER + 3 && s.node !== (end === 0 ? P0node(L) : PLnode(L))) { okb = false; break; } }
+      if (okb) { L.badges.push({ x: c[0], y: c[1], end }); badges.push({ x: c[0], y: c[1], r: 12 }); }
+    });
+  });
+  function P0node(L) { return L.path[0]; } function PLnode(L) { return L.path[L.path.length - 1]; }
+
+  /* названия + подписи */
+  const nr = mulberry32(hashSeed(o.seed + '@names' + att));
+  const namer = makeNamer(nr);
+  const used = new Set();
+  const term = new Set(); lines.forEach(L => { if (!L.closed) { term.add(L.ord[0]); term.add(L.ord[L.ord.length - 1]); } });
+  const ccx = cx * CELL, ccy = cy * CELL;
+  for (const s of stations) {
+    const ctx = { river: riverD[s.node] < 1.7, center: Math.hypot(s.x - ccx, s.y - ccy) < CELL * 4.2, edge: term.has(s.id) };
+    s.ctx = ctx; s.name = namer(ctx, 24, used); used.add(s.name);
+  }
+  let res = null;
+  for (let round = 0; round < 8; round++) {
+    res = placeLabels(stations, segs, badges, rng);
+    if (!res.failed.length) break;
+    const maxLen = [16, 14, 12, 11, 10, 9, 8, 7][round];
+    for (const i of res.failed) { const s = stations[i]; used.delete(s.name); s.name = namer(Object.assign({}, s.ctx, { center: false, river: false }), maxLen, used); used.add(s.name); }
+  }
+  if (res.failed.length) return { fail: 'подписи: ' + res.failed.length, failedLabels: res.failed.length, failedInfo: res.failed.map(i => ({ inter: stations[i].inter, nl: stations[i].lines.length, name: stations[i].name, cands: res.nc[i] })) };
+  stations.forEach((s, i) => { s.lab = res.labels[i]; });
+
+  /* границы */
+  let minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
+  const ext1 = (x, y) => { if (x < minX) minX = x; if (y < minY) minY = y; if (x > maxX) maxX = x; if (y > maxY) maxY = y; };
+  lines.forEach(L => L.pathPx.forEach(p => ext1(p[0], p[1])));
+  stations.forEach(s => { const r = s.lab.rect; ext1(r.x, r.y); ext1(r.x + r.w, r.y + r.h); });
+  lines.forEach(L => (L.badges || []).forEach(b => { ext1(b.x - 12, b.y - 12); ext1(b.x + 12, b.y + 12); }));
+  const km = lines.reduce((a, L) => a + L.len, 0) * 0.62;
+  return {
+    ok: true, seed: o.seed, opts: o, att, W, H, cell: CELL, stations, lines, base,
+    river: river.map(p => [p[0] * CELL, p[1] * CELL]), bbox: { minX, minY, maxX, maxY }, km,
+    segs, badges
+  };
+}
+
+/* ---------- скруглённые углы ---------- */
+function buildRP(L) {
+  const P = L.pathPx, closed = L.closed, m = closed ? P.length - 1 : P.length;
+  const isSt = new Set(L.stPathIdx);
+  const pts = [], idxMap = new Map();
+  const RR = 15;
+  const at = j => P[((j % m) + m) % m];
+  const start = closed ? 0 : 0, end = closed ? m : m;
+  const emit = (p, i) => { pts.push(p); if (i !== undefined) idxMap.set(i, pts.length - 1); };
+  for (let i = start; i < end; i++) {
+    const v = P[i];
+    const hasPrev = closed || i > 0, hasNext = closed || i < m - 1;
+    if (!hasPrev || !hasNext || isSt.has(i)) { emit(v, i); continue; }
+    const p0 = at(i - 1), p1 = at(i + 1);
+    const d0x = v[0] - p0[0], d0y = v[1] - p0[1], d1x = p1[0] - v[0], d1y = p1[1] - v[1];
+    if (d0x * d1y - d0y * d1x === 0) { emit(v); continue; }
+    const l0 = Math.hypot(d0x, d0y), l1 = Math.hypot(d1x, d1y), r = Math.min(RR, l0 / 2, l1 / 2);
+    const a = [v[0] - d0x / l0 * r, v[1] - d0y / l0 * r], b = [v[0] + d1x / l1 * r, v[1] + d1y / l1 * r];
+    emit(a);
+    for (let s = 1; s < 6; s++) { const t = s / 6, u = 1 - t; emit([u * u * a[0] + 2 * u * t * v[0] + t * t * b[0], u * u * a[1] + 2 * u * t * v[1] + t * t * b[1]]); }
+    emit(b);
+  }
+  if (closed) pts.push(pts[0]); else idxMap.set(m - 1, pts.length - 1);
+  L.rp = pts; L.rpIdx = L.stPathIdx.map(i => idxMap.get(i));
+  const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  L.rpCum = cum; L.rpLen = cum[cum.length - 1];
+  L.rpStCum = L.rpIdx.map(i => cum[i]);
+}
+
+/* ---------- расстановка подписей ---------- */
+const POS = [['E', 0], ['W', 0.25], ['N', 0.55], ['S', 0.55], ['NE', 0.9], ['SE', 0.9], ['NW', 1.1], ['SW', 1.1],
+  ['Ne', 1.3], ['Se', 1.3], ['Nw', 1.3], ['Sw', 1.3], ['E-', 1.5], ['E+', 1.5], ['W-', 1.6], ['W+', 1.6]];
+function labelRect(s, pos, w, h) {
+  const off = 13, x = s.x, y = s.y;
+  switch (pos) {
+    case 'Ne': return { x: x - 6, y: y - off - h + 2, w, h };
+    case 'Se': return { x: x - 6, y: y + off - 2, w, h };
+    case 'Nw': return { x: x + 6 - w, y: y - off - h + 2, w, h };
+    case 'Sw': return { x: x + 6 - w, y: y + off - 2, w, h };
+    case 'E-': return { x: x + off, y: y - h + 3, w, h };
+    case 'E+': return { x: x + off, y: y - 3, w, h };
+    case 'W-': return { x: x - off - w, y: y - h + 3, w, h };
+    case 'W+': return { x: x - off - w, y: y - 3, w, h };
+    case 'E': return { x: x + off, y: y - h / 2, w, h };
+    case 'W': return { x: x - off - w, y: y - h / 2, w, h };
+    case 'N': return { x: x - w / 2, y: y - off - h + 2, w, h };
+    case 'S': return { x: x - w / 2, y: y + off - 2, w, h };
+    case 'NE': return { x: x + 9, y: y - 9 - h, w, h };
+    case 'SE': return { x: x + 9, y: y + 9, w, h };
+    case 'NW': return { x: x - 9 - w, y: y - 9 - h, w, h };
+    default: return { x: x - 9 - w, y: y + 9, w, h };
+  }
+}
+function placeLabels(stations, segs, badges, rng) {
+  const n = stations.length, GAP = 1.5, MARG = HW_MAX + 3;
+  // сетка для отрезков
+  const B = 90, grid = new Map();
+  const addG = (x0, y0, x1, y1, item) => { for (let gx = Math.floor(x0 / B); gx <= Math.floor(x1 / B); gx++) for (let gy = Math.floor(y0 / B); gy <= Math.floor(y1 / B); gy++) { const k = gx + ',' + gy; let a = grid.get(k); if (!a) grid.set(k, a = []); a.push(item); } };
+  segs.forEach(s => addG(Math.min(s.x1, s.x2) - MARG, Math.min(s.y1, s.y2) - MARG, Math.max(s.x1, s.x2) + MARG, Math.max(s.y1, s.y2) + MARG, { t: 0, s }));
+  stations.forEach((s, i) => { const r = s.inter ? R_INTER : R_PLAIN; addG(s.x - r - 3, s.y - r - 3, s.x + r + 3, s.y + r + 3, { t: 1, s, i, r }); });
+  badges.forEach(b => addG(b.x - b.r - 3, b.y - b.r - 3, b.x + b.r + 3, b.y + b.r + 3, { t: 2, s: b, r: b.r }));
+  const cands = [];
+  for (let i = 0; i < n; i++) {
+    const s = stations[i], name = s.name, vars = [{ lines: [name], w: textW(name), vc: 0 }];
+    const sp = splitName(name); if (sp) vars.push({ lines: sp, w: Math.max(textW(sp[0]), textW(sp[1])), vc: 0.45 });
+    const list = [];
+    for (const v of vars) {
+      const w = v.w + 6, h = v.lines.length * LABEL_LH + 4;
+      for (const [pos, pc] of POS) for (const ext of [0, 7, 14]) {
+        const rect0 = labelRect(s, pos, w, h), up = pos.toUpperCase();
+        const ddx = up[0] === 'E' ? 1 : up[0] === 'W' ? -1 : (up.length > 1 && (up[1] === 'E' || up[1] === 'W') ? (up[1] === 'E' ? 1 : -1) : 0);
+        const ddy = (up[0] === 'N' ? -1 : up[0] === 'S' ? 1 : 0) + (up.length > 1 && (up[1] === 'N' || up[1] === 'S') ? (up[1] === 'N' ? -1 : 1) : 0);
+        const rect = { x: rect0.x + ddx * ext, y: rect0.y + ddy * ext, w, h };
+        let ok = true;
+        const seen = new Set();
+        for (let gx = Math.floor((rect.x - MARG) / B); ok && gx <= Math.floor((rect.x + w + MARG) / B); gx++)
+          for (let gy = Math.floor((rect.y - MARG) / B); ok && gy <= Math.floor((rect.y + h + MARG) / B); gy++) {
+            const a = grid.get(gx + ',' + gy); if (!a) continue;
+            for (const it of a) {
+              if (seen.has(it)) continue; seen.add(it);
+              if (it.t === 0) { const own = ptSegDist(s.x, s.y, it.s.x1, it.s.y1, it.s.x2, it.s.y2) < 1; if (segRectDist(it.s.x1, it.s.y1, it.s.x2, it.s.y2, rect) < (own ? 6.2 : MARG)) { ok = false; break; } }
+              else if (it.t === 1) { if (it.i !== i && circleRectDist(it.s.x, it.s.y, rect) < it.r + 3) { ok = false; break; } }
+              else { if (circleRectDist(it.s.x, it.s.y, rect) < it.r + 3) { ok = false; break; } }
+            }
+          }
+        if (ok) list.push({ rect, pos, lines: v.lines, cost: pc + v.vc + ext * 0.09 + (v.w > 120 ? 0.2 : 0) + rng() * 0.05 });
+      }
+    }
+    list.sort((a, b) => a.cost - b.cost);
+    cands.push(list);
+  }
+  const assignOnce = (order, noiseAmt) => {
+    const asg = new Array(n).fill(-1);
+    const conf = (i, c, skip) => { const r = cands[i][c].rect, out = []; for (let j = 0; j < n; j++) { if (j === i || j === skip || asg[j] < 0) continue; if (rectsOverlap(r, cands[j][asg[j]].rect, GAP * 2)) out.push(j); } return out; };
+    const failed = [];
+    for (const i of order) {
+      let placed = false;
+      for (let c = 0; c < cands[i].length; c++) { if (!conf(i, c).length) { asg[i] = c; placed = true; break; } }
+      if (placed) continue;
+      outer: for (let c = 0; c < Math.min(cands[i].length, 12); c++) {
+        const cf = conf(i, c); if (cf.length !== 1) continue;
+        const j = cf[0], old = asg[j]; asg[i] = c;
+        for (let cj = 0; cj < cands[j].length; cj++) { if (cj === old) continue; asg[j] = -1; const cc = conf(j, cj); if (!cc.length) { asg[j] = cj; placed = true; break outer; } }
+        asg[j] = old; asg[i] = -1;
+      }
+      if (!placed) failed.push(i);
+    }
+    return { asg, failed };
+  };
+  const baseOrder = [...Array(n).keys()].sort((a, b) => cands[a].length - cands[b].length);
+  let best = assignOnce(baseOrder);
+  for (let t = 0; t < 14 && best.failed.length; t++) {
+    const ord = baseOrder.map(i => [i, cands[i].length + rng() * 3]).sort((a, b) => a[1] - b[1]).map(a => a[0]);
+    // упавшие вперёд
+    const fset = new Set(best.failed); ord.sort((a, b) => (fset.has(b) ? 1 : 0) - (fset.has(a) ? 1 : 0));
+    const r = assignOnce(ord); if (r.failed.length < best.failed.length) best = r;
+  }
+  const labels = best.asg.map((c, i) => {
+    if (c < 0) return null; const k = cands[i][c];
+    const anchor = ['E', 'NE', 'SE', 'Ne', 'Se', 'E-', 'E+'].includes(k.pos) ? 'start' : (k.pos === 'N' || k.pos === 'S') ? 'middle' : 'end';
+    return { rect: k.rect, pos: k.pos, lines: k.lines, anchor };
+  });
+  return { labels, failed: best.failed, nc: cands.map(c => c.length) };
+}
+
+/* ---------- внешний цикл попыток ---------- */
+function genCitySync(o, maxAtt) {
+  maxAtt = maxAtt || 120; let lastFail = '';
+  for (let a = 0; a < maxAtt; a++) { const c = tryBuild(o, a); if (c.ok) { c.fails = a; return c; } lastFail = c.fail; }
+  return { ok: false, fail: lastFail };
+}
+
+/* ---------- маршрут (Дейкстра по состояниям «станция + линия») ---------- */
+function findRoute(city, a, b) {
+  if (a === b) return null;
+  const { stations, lines } = city;
+  const key = (s, l) => s * 16 + l;
+  const dist = new Map(), prev = new Map(), done = new Set();
+  const pq = [];
+  stations[a].lines.forEach(l => { dist.set(key(a, l), 0); pq.push([0, a, l]); });
+  const neighbors = (s, l) => {
+    const L = lines[l], k = L.ord.indexOf(s), n = L.ord.length, out = [];
+    if (k < 0) return out;
+    if (L.closed) { out.push([L.ord[(k + 1) % n], L.edgeMin[k]]); out.push([L.ord[(k - 1 + n) % n], L.edgeMin[(k - 1 + n) % n]]); }
+    else { if (k < n - 1) out.push([L.ord[k + 1], L.edgeMin[k]]); if (k > 0) out.push([L.ord[k - 1], L.edgeMin[k - 1]]); }
+    return out;
+  };
+  let endKey = null;
+  while (pq.length) {
+    let bi = 0; for (let i = 1; i < pq.length; i++) if (pq[i][0] < pq[bi][0]) bi = i;
+    const [d, s, l] = pq.splice(bi, 1)[0]; const kk = key(s, l);
+    if (done.has(kk)) continue; done.add(kk);
+    if (s === b) { endKey = kk; break; }
+    for (const [t, w] of neighbors(s, l)) { const k2 = key(t, l), nd = d + w; if (nd < (dist.has(k2) ? dist.get(k2) : 1e9)) { dist.set(k2, nd); prev.set(k2, [kk, 'ride']); pq.push([nd, t, l]); } }
+    for (const l2 of stations[s].lines) if (l2 !== l) { const k2 = key(s, l2), nd = d + stations[s].walk; if (nd < (dist.has(k2) ? dist.get(k2) : 1e9)) { dist.set(k2, nd); prev.set(k2, [kk, 'walk']); pq.push([nd, s, l2]); } }
+  }
+  if (endKey === null) return null;
+  const chain = []; let c = endKey; while (c !== undefined) { chain.push(c); const p = prev.get(c); c = p ? p[0] : undefined; }
+  chain.reverse();
+  const legs = []; let total = dist.get(endKey);
+  for (const kk of chain) {
+    const s = Math.floor(kk / 16), l = kk % 16;
+    const last = legs[legs.length - 1];
+    if (last && last.line === l) { if (last.stops[last.stops.length - 1] !== s) last.stops.push(s); }
+    else legs.push({ line: l, stops: [s] });
+  }
+  // время на каждом участке
+  legs.forEach(g => { let t = 0; const L = lines[g.line]; for (let i = 0; i < g.stops.length - 1; i++) t += edgeMinBetween(L, g.stops[i], g.stops[i + 1]); g.min = t; });
+  const transfers = legs.length - 1;
+  const stopsCount = legs.reduce((q, g) => q + g.stops.length - 1, 0);
+  return { legs, total, transfers, stopsCount };
+}
+function edgeMinBetween(L, s, t) {
+  const n = L.ord.length, i = L.ord.indexOf(s), j = L.ord.indexOf(t);
+  if (L.closed) { if ((i + 1) % n === j) return L.edgeMin[i]; if ((j + 1) % n === i) return L.edgeMin[j]; }
+  else { if (j === i + 1) return L.edgeMin[i]; if (i === j + 1) return L.edgeMin[j]; }
+  return 0;
+}
+
+/* ---------- проверка готовой схемы ---------- */
+function validateCity(city) {
+  const errs = [], { stations, lines } = city;
+  // 1. углы
+  let segN = 0;
+  lines.forEach(L => { for (let i = 0; i < L.pathPx.length - 1; i++) { segN++; const dx = L.pathPx[i + 1][0] - L.pathPx[i][0], dy = L.pathPx[i + 1][1] - L.pathPx[i][1]; if (!(dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy)) || (dx === 0 && dy === 0)) errs.push('угол не кратен 45: линия ' + L.id + ' отрезок ' + i); } });
+  // 2. пересечения линий — только на станциях; общие рёбра
+  const all = []; lines.forEach(L => { for (let i = 0; i < L.pathPx.length - 1; i++) all.push({ li: L.id, i, a: L.pathPx[i], b: L.pathPx[i + 1], n: L.pathPx.length - 1, closed: L.closed }); });
+  const stPts = stations.map(s => [s.x, s.y]);
+  const onStation = (x, y) => stPts.some(p => Math.abs(p[0] - x) < 0.5 && Math.abs(p[1] - y) < 0.5);
+  const cr = (ax, ay, bx, by) => ax * by - ay * bx;
+  let crossBad = 0, overlapBad = 0;
+  for (let p = 0; p < all.length; p++) for (let q = p + 1; q < all.length; q++) {
+    const s = all[p], t = all[q];
+    if (s.li === t.li) { const d = Math.abs(s.i - t.i); if (d === 1 || (s.closed && d === s.n - 1)) continue; }
+    const r = [s.b[0] - s.a[0], s.b[1] - s.a[1]], u = [t.b[0] - t.a[0], t.b[1] - t.a[1]];
+    const den = cr(r[0], r[1], u[0], u[1]), w = [t.a[0] - s.a[0], t.a[1] - s.a[1]];
+    if (den === 0) {
+      if (cr(w[0], w[1], r[0], r[1]) !== 0) continue; // параллельны, не на одной прямой
+      const l2 = r[0] * r[0] + r[1] * r[1], t0 = (w[0] * r[0] + w[1] * r[1]) / l2, t1 = t0 + (u[0] * r[0] + u[1] * r[1]) / l2;
+      const ov = Math.min(Math.max(t0, t1), 1) - Math.max(Math.min(t0, t1), 0);
+      if (ov > 1e-9) overlapBad++;
+      else if (ov >= -1e-9) { // касание концами
+        const ex = Math.max(Math.min(t0, t1), 0) <= 1e-9 ? s.a : s.b; if (!onStation(ex[0], ex[1])) crossBad++;
+      }
+      continue;
+    }
+    const tt = cr(w[0], w[1], u[0], u[1]) / den, uu = cr(w[0], w[1], r[0], r[1]) / den;
+    if (tt < -1e-9 || tt > 1 + 1e-9 || uu < -1e-9 || uu > 1 + 1e-9) continue;
+    const x = s.a[0] + tt * r[0], y = s.a[1] + tt * r[1];
+    if (!onStation(x, y)) crossBad++;
+  }
+  if (crossBad) errs.push('пересечения вне станций: ' + crossBad);
+  if (overlapBad) errs.push('линии идут по одному ребру: ' + overlapBad);
+  // 3. подписи
+  const labs = stations.map(s => s.lab.rect);
+  let ll = 0, ls = 0, lc = 0, lb = 0;
+  for (let i = 0; i < labs.length; i++) for (let j = i + 1; j < labs.length; j++) if (rectsOverlap(labs[i], labs[j], 0)) ll++;
+  for (let i = 0; i < labs.length; i++) {
+    for (const s of all) if (segRectDist(s.a[0], s.a[1], s.b[0], s.b[1], labs[i]) < 5.9) ls++;
+    for (let j = 0; j < stations.length; j++) if (circleRectDist(stations[j].x, stations[j].y, labs[i]) < (stations[j].inter ? 10 : 7)) lc++;
+    for (const L of lines) for (const b of (L.badges || [])) if (circleRectDist(b.x, b.y, labs[i]) < 12) lb++;
+  }
+  if (ll) errs.push('подписи пересекают подписи: ' + ll);
+  if (ls) errs.push('подписи пересекают линии: ' + ls);
+  if (lc) errs.push('подписи задевают станции: ' + lc);
+  if (lb) errs.push('подписи задевают значки: ' + lb);
+  // 4. кружки станций не пересекаются между собой
+  let sc = 0; for (let i = 0; i < stations.length; i++) for (let j = i + 1; j < stations.length; j++) if (Math.hypot(stations[i].x - stations[j].x, stations[i].y - stations[j].y) < CELL * 1.99) sc++;
+  if (sc) errs.push('станции ближе 2 клеток: ' + sc);
+  // 5. маршрут между любой парой
+  let unreachable = 0, pairs = 0;
+  for (let a = 0; a < stations.length; a++) {
+    // обход в ширину по графу линий
+    const seen = new Set([a]), q = [a];
+    while (q.length) { const s = q.pop(); for (const l of stations[s].lines) { for (const t of lines[l].ord) if (!seen.has(t)) { seen.add(t); q.push(t); } } }
+    unreachable += stations.length - seen.size; pairs += stations.length - 1;
+  }
+  if (unreachable) errs.push('нет пути между станциями: ' + unreachable);
+  return { ok: errs.length === 0, errs, stats: { segments: segN, stations: stations.length, lines: lines.length, labelPairs: labs.length * (labs.length - 1) / 2, pairs } };
+}
+
+
+</script>
+<script>
+/* ================= ИНТЕРФЕЙС ================= */
+const $ = id => document.getElementById(id);
+const KEY = 'a20_metro_v1';
+const NS = 'http://www.w3.org/2000/svg';
+const STYLES = {
+  moscow: { bg: '#f6f2e8', ink: '#16181d', lineW: 9, font: 'Bahnschrift,"Segoe UI",Arial,sans-serif', river: '#bcd8e6', riverEdge: '#9cc3d6', plainR: 6.5, plainFill: 'line', plainStroke: '#fff', plainSW: 2.5, interR: 10.5, interFill: '#fff', interStroke: '#16181d', interSW: 3.5, halo: '#f6f2e8', title: '#16181d', sub: '#555046', code: 'num',
+    pal: ['#d62d20', '#1b8a3a', '#1565c0', '#e8830c', '#7b3fa0', '#0a8f9a', '#7d8a00', '#d6407f', '#555b66'], ring: '#8b5a2b' },
+  london: { bg: '#ffffff', ink: '#1b1b1b', lineW: 7, font: '"Franklin Gothic Medium","Segoe UI",Arial,sans-serif', river: '#b7dcf2', riverEdge: '#b7dcf2', plainR: 4.6, plainFill: '#fff', plainStroke: '#1b1b1b', plainSW: 2.2, interR: 9, interFill: '#fff', interStroke: '#1b1b1b', interSW: 3.2, halo: '#ffffff', title: '#1b1b1b', sub: '#4a4a4a', code: 'num',
+    pal: ['#e32017', '#00782a', '#0019a8', '#f3a900', '#9b0058', '#00868e', '#6a7a00', '#ee7c0e', '#313131'], ring: '#f0c800' },
+  tokyo: { bg: '#eef1f2', ink: '#20262b', lineW: 8, font: '"Trebuchet MS","Segoe UI",Arial,sans-serif', river: '#cfe5ee', riverEdge: '#cfe5ee', plainR: 6.5, plainFill: '#fff', plainStroke: 'line', plainSW: 3.2, interR: 10.5, interFill: '#fff', interStroke: '#20262b', interSW: 3, halo: '#eef1f2', title: '#20262b', sub: '#4a545c', code: 'letter',
+    pal: ['#d9141c', '#0a9455', '#1e63c8', '#e07c00', '#8d3fa8', '#00899b', '#76920a', '#d93a85', '#4a4f5a'], ring: '#a95a16' },
+  night: { bg: '#0e131c', ink: '#e8edf5', lineW: 8, font: 'Bahnschrift,"Segoe UI",Arial,sans-serif', river: '#16304d', riverEdge: '#1f4670', plainR: 6.5, plainFill: '#0e131c', plainStroke: 'line', plainSW: 3, interR: 10.5, interFill: '#e8edf5', interStroke: '#0e131c', interSW: 3, halo: '#0e131c', title: '#f2f5fa', sub: '#aab6c8', code: 'num',
+    pal: ['#ff5560', '#35e07c', '#4da3ff', '#ffb020', '#c77dff', '#2fe0e0', '#d4f03a', '#ff6fb5', '#c9d1dd'], ring: '#ff9f5a' }
+};
+const CODES = 'ABCDEFGH';
+const DEF = { seed: '2718', size: 'M', lines: 5, density: 'normal', ring: true, river: true, style: 'moscow', live: false, name: '', custom: false };
+let S = Object.assign({}, DEF);
+try { const j = JSON.parse(localStorage.getItem(KEY) || 'null'); if (j && typeof j === 'object') S = Object.assign({}, DEF, j); } catch (e) { }
+if (!STYLES[S.style]) S.style = 'moscow'; if (!SIZES[S.size]) S.size = 'M';
+S.lines = Math.max(2, Math.min(8, S.lines | 0 || 5));
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } };
+
+let city = null, ver = null, genTok = 0, selA = -1, selB = -1, route = null;
+let view = { cx: 0, cy: 0, k: 1 }, frame = null;
+const stage = $('stage'), svg = $('map'), tip = $('tip');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const lum = h => { const n = parseInt(h.slice(1), 16), f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(n >> 16) + .7152 * f(n >> 8 & 255) + .0722 * f(n & 255); };
+const onCol = h => lum(h) > 0.32 ? '#16181d' : '#ffffff';
+const lineCol = L => { const st = STYLES[S.style]; return L.isRing ? st.ring : st.pal[(L.num - 1) % st.pal.length]; };
+const lineCode = L => { const st = STYLES[S.style]; return L.isRing ? (st.code === 'letter' ? 'Y' : '○') : (st.code === 'letter' ? CODES[(L.num - 1) % 8] : String(L.num)); };
+
+function lineNames(c) {
+  const r = mulberry32(hashSeed(c.seed + 'ln')), a = LINE_NAMES.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  let k = 0; c.lines.forEach(L => { L.name = L.isRing ? 'Кольцевая' : a[k++ % a.length]; });
+}
+function randSeed() { return String(Math.floor(Math.random() * 900000) + 100000); }
+function curName() { return S.custom && S.name.trim() ? S.name.trim() : genCityName(S.seed); }
+
+/* ---------- генерация порциями ---------- */
+function build() {
+  const tok = ++genTok; tip.style.display = 'none'; $('busy').classList.add('on'); $('busy').textContent = 'Строю схему…';
+  clearRoute(true);
+  let lines = S.lines, att = 0, fallbacks = 0;
+  const opts = () => ({ seed: S.seed, size: S.size, lines, ring: S.ring, river: S.river, density: S.density });
+  const step = () => {
+    if (tok !== genTok) return;
+    const t0 = performance.now();
+    while (performance.now() - t0 < 120) {
+      const c = tryBuild(opts(), att);
+      if (c.ok) { c.fails = att; c.reqLines = S.lines; return done(c); }
+      att++;
+      if (att >= 90) { att = 0; if (lines > 2) { lines--; fallbacks++; } else { lines = Math.max(2, S.lines); S.seed = S.seed + 'x'; } }
+    }
+    $('busy').textContent = 'Строю схему… попытка ' + (att + 1);
+    setTimeout(step, 0);
+  };
+  setTimeout(step, 20);
+}
+function done(c) {
+  lineNames(c); city = c; ver = validateCity(c);
+  $('busy').classList.remove('on');
+  render(); fitView(true); legend(); stats(); updRoute();
+  if (S.live) startLive();
+}
+
+/* ---------- отрисовка ---------- */
+function polyD(pts) { let d = ''; for (let i = 0; i < pts.length; i++) d += (i ? 'L' : 'M') + pts[i][0].toFixed(1) + ' ' + pts[i][1].toFixed(1); return d; }
+function riverD() {
+  const p = city.river; let d = 'M' + p[0][0].toFixed(1) + ' ' + p[0][1].toFixed(1);
+  for (let i = 1; i < p.length; i++) d += 'L' + p[i][0].toFixed(1) + ' ' + p[i][1].toFixed(1);
+  return d;
+}
+function labelSVG(s, st, extra) {
+  const r = s.lab.rect, lines = s.lab.lines, a = s.lab.anchor;
+  const x = a === 'start' ? r.x + 3 : a === 'end' ? r.x + r.w - 3 : r.x + r.w / 2;
+  let o = '<text text-anchor="' + a + '" ' + (extra || '') + '>';
+  lines.forEach((t, i) => { o += '<tspan x="' + x.toFixed(1) + '" y="' + (r.y + 2 + i * LABEL_LH + 11.5).toFixed(1) + '">' + esc(t) + '</tspan>'; });
+  return o + '</text>';
+}
+function stationSVG(s, st) {
+  const L0 = city.lines[s.lines[0]], col = lineCol(L0);
+  if (s.inter) {
+    const r = st.interR;
+    let o = '<circle r="' + r + '" fill="' + st.interFill + '" stroke="' + st.interStroke + '" stroke-width="' + st.interSW + '"/>';
+    o += '<circle r="' + (r * 0.38).toFixed(1) + '" fill="' + st.interStroke + '"/>';
+    return o;
+  }
+  const fill = st.plainFill === 'line' ? col : st.plainFill, stroke = st.plainStroke === 'line' ? col : st.plainStroke;
+  return '<circle r="' + st.plainR + '" fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + st.plainSW + '"/>';
+}
+function computeFrame() {
+  const b = city.bbox; frame = { x0: b.minX - 44, x1: b.maxX + 44, y0: b.minY - 44 - 78, y1: b.maxY + 44, my: b.minY - 44 };
+}
+function render() {
+  if (!city) return;
+  const st = STYLES[S.style]; document.body.className = 's-' + S.style;
+  computeFrame();
+  const F = frame; let o = '';
+  o += '<defs><clipPath id="clipF"><rect x="' + F.x0 + '" y="' + F.my + '" width="' + (F.x1 - F.x0) + '" height="' + (F.y1 - F.my) + '"/></clipPath></defs>';
+  o += '<rect id="bgRect" x="' + (F.x0 - 4000) + '" y="' + (F.y0 - 4000) + '" width="' + (F.x1 - F.x0 + 8000) + '" height="' + (F.y1 - F.y0 + 8000) + '" fill="' + st.bg + '"/>';
+  o += '<rect x="' + F.x0 + '" y="' + F.y0 + '" width="' + (F.x1 - F.x0) + '" height="' + (F.y1 - F.y0) + '" fill="' + st.bg + '" stroke="' + st.ink + '" stroke-width="2.5"/>';
+  // титул
+  const name = curName();
+  o += '<g id="titleG" font-family=\'' + st.font + '\'><text x="' + (F.x0 + 22) + '" y="' + (F.y0 + 44) + '" font-size="30" font-weight="700" fill="' + st.title + '" letter-spacing="1">' + esc(name.toUpperCase()) + '</text>';
+  o += '<text x="' + (F.x0 + 22) + '" y="' + (F.y0 + 64) + '" font-size="13" fill="' + st.sub + '" letter-spacing="1.5">СХЕМА МЕТРОПОЛИТЕНА · ' + esc(String(S.seed).toUpperCase()) + '</text>';
+  const nr = city.lines.filter(l => !l.isRing).length, hasR = nr < city.lines.length;
+  o += '<text x="' + (F.x1 - 22) + '" y="' + (F.y0 + 44) + '" font-size="14" text-anchor="end" fill="' + st.sub + '">' + nr + ' ' + plural(nr, 'линия', 'линии', 'линий') + (hasR ? ' + кольцо' : '') + ' · ' + city.stations.length + ' ' + plural(city.stations.length, 'станция', 'станции', 'станций') + '</text>';
+  o += '<line x1="' + F.x0 + '" x2="' + F.x1 + '" y1="' + F.my + '" y2="' + F.my + '" stroke="' + st.ink + '" stroke-width="2.5"/></g>';
+  o += '<g id="base">';
+  if (city.river.length) { o += '<g clip-path="url(#clipF)"><path d="' + riverD() + '" fill="none" stroke="' + st.riverEdge + '" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" opacity="' + (S.style === 'night' ? 1 : .7) + '"/><path d="' + riverD() + '" fill="none" stroke="' + st.river + '" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/></g>'; }
+  o += '<g id="lines" fill="none" stroke-linecap="round" stroke-linejoin="round">';
+  city.lines.forEach(L => {
+    const col = lineCol(L);
+    o += '<path data-l="' + L.id + '" d="' + polyD(L.rp) + (L.closed ? 'Z' : '') + '" stroke="' + col + '" stroke-width="' + st.lineW + '"/>';
+  });
+  o += '</g>';
+  // значки на концах
+  o += '<g id="badges" font-family=\'' + st.font + '\' font-weight="700" font-size="13" text-anchor="middle">';
+  city.lines.forEach(L => (L.badges || []).forEach(b => {
+    const col = lineCol(L);
+    if (S.style === 'tokyo') o += '<rect x="' + (b.x - 11) + '" y="' + (b.y - 11) + '" width="22" height="22" rx="5" fill="' + col + '"/>';
+    else o += '<circle cx="' + b.x + '" cy="' + b.y + '" r="12" fill="' + col + '"/>';
+    o += '<text x="' + b.x + '" y="' + (b.y + 4.8) + '" fill="' + onCol(col) + '">' + lineCode(L) + '</text>';
+  }));
+  o += '</g>';
+  o += '<g id="sts">';
+  city.stations.forEach(s => { o += '<g data-s="' + s.id + '" transform="translate(' + s.x + ' ' + s.y + ')" style="cursor:pointer">' + stationSVG(s, st) + '<circle r="15" fill="transparent"/></g>'; });
+  o += '</g>';
+  o += '<g id="labs" font-family=\'' + st.font + '\' font-size="13" font-weight="' + (S.style === 'london' ? 400 : 600) + '" fill="' + st.ink + '" stroke="' + st.halo + '" stroke-width="3" paint-order="stroke" stroke-linejoin="round">';
+  city.stations.forEach(s => { o += '<g data-s="' + s.id + '" style="cursor:pointer">' + labelSVG(s, st) + '</g>'; });
+  o += '</g></g>';
+  o += '<g id="ovl"></g><g id="trains"></g>';
+  svg.innerHTML = o;
+  $('note').textContent = '';
+  drawRoute();
+  applyView();
+}
+function plural(n, a, b, c) { const m = n % 100, k = n % 10; if (m > 10 && m < 20) return c; if (k === 1) return a; if (k > 1 && k < 5) return b; return c; }
+
+/* ---------- вид: масштаб и сдвиг ---------- */
+function fitView(animate) {
+  if (!frame) return;
+  const W = stage.clientWidth, H = stage.clientHeight, pad = 24;
+  const k = Math.min((W - pad * 2) / (frame.x1 - frame.x0), (H - pad * 2) / (frame.y1 - frame.y0));
+  view = { cx: (frame.x0 + frame.x1) / 2, cy: (frame.y0 + frame.y1) / 2, k };
+  applyView();
+}
+function applyView() {
+  const W = stage.clientWidth || 800, H = stage.clientHeight || 600;
+  svg.setAttribute('viewBox', (view.cx - W / 2 / view.k).toFixed(2) + ' ' + (view.cy - H / 2 / view.k).toFixed(2) + ' ' + (W / view.k).toFixed(2) + ' ' + (H / view.k).toFixed(2));
+}
+function zoomAt(f, px, py) {
+  const W = stage.clientWidth, H = stage.clientHeight; if (px === undefined) { px = W / 2; py = H / 2; }
+  const wx = view.cx + (px - W / 2) / view.k, wy = view.cy + (py - H / 2) / view.k;
+  const nk = Math.max(0.15, Math.min(4, view.k * f));
+  view.k = nk; view.cx = wx - (px - W / 2) / nk; view.cy = wy - (py - H / 2) / nk; applyView();
+}
+stage.addEventListener('wheel', e => { e.preventDefault(); const r = stage.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY * 0.0016), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
+const ptrs = new Map(); let drag = null, moved = 0, pinch0 = null;
+stage.addEventListener('pointerdown', e => {
+  if (e.target.closest('#zoom,#back')) return;
+  stage.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); moved = 0;
+  if (ptrs.size === 1) drag = { x: e.clientX, y: e.clientY, cx: view.cx, cy: view.cy };
+  if (ptrs.size === 2) { const a = [...ptrs.values()]; pinch0 = { d: Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]), k: view.k }; }
+});
+stage.addEventListener('pointermove', e => {
+  if (ptrs.has(e.pointerId)) {
+    ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if (ptrs.size === 2 && pinch0) { const a = [...ptrs.values()]; const d = Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]); const r = stage.getBoundingClientRect(); const nk = Math.max(0.15, Math.min(4, pinch0.k * d / pinch0.d)); zoomAt(nk / view.k, (a[0][0] + a[1][0]) / 2 - r.left, (a[0][1] + a[1][1]) / 2 - r.top); moved = 99; }
+    else if (drag && ptrs.size === 1) {
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y; moved = Math.max(moved, Math.hypot(dx, dy));
+      if (moved > 4) { stage.classList.add('drag'); view.cx = drag.cx - dx / view.k; view.cy = drag.cy - dy / view.k; applyView(); }
+    }
+  }
+  hoverTip(e);
+});
+const endPtr = e => { if (e.pointerType === 'touch') tip.style.display = 'none'; ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = null; if (!ptrs.size) { drag = null; stage.classList.remove('drag'); } else if (ptrs.size === 1) { const p = [...ptrs.values()][0]; drag = { x: p[0], y: p[1], cx: view.cx, cy: view.cy }; } };
+stage.addEventListener('pointerup', e => { const wasClick = moved <= 4 && ptrs.size === 1; endPtr(e); if (wasClick) clickAt(e); });
+stage.addEventListener('pointercancel', endPtr);
+stage.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
+function hoverTip(e) {
+  if (e.pointerType === 'touch' || drag && moved > 4) { tip.style.display = 'none'; return; }
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const t = el && el.closest && el.closest('#map [data-s],#map [data-t]');
+  if (!t || !city) { tip.style.display = 'none'; return; }
+  let txt;
+  if (t.dataset.t !== undefined) { const L = city.lines[+t.dataset.l]; txt = t.dataset.t === 'gold' ? 'Золотой поезд. Его мало кто находит.' : 'Поезд · линия «' + L.name + '»'; }
+  else { const s = city.stations[+t.dataset.s]; txt = s.name + ' · ' + s.lines.map(l => city.lines[l].isRing ? 'Кольцевая' : 'линия ' + city.lines[l].num).join(', '); }
+  const r = stage.getBoundingClientRect(); tip.textContent = txt; tip.style.display = 'block';
+  let x = e.clientX - r.left + 14, y = e.clientY - r.top + 16; if (x + tip.offsetWidth > r.width - 6) x = e.clientX - r.left - tip.offsetWidth - 10; if (y + 30 > r.height) y = e.clientY - r.top - 36;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function clickAt(e) {
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const t = el && el.closest && el.closest('[data-s]'); if (!t || !city || !t.closest('#map')) return;
+  pickStation(+t.dataset.s);
+}
+function pickStation(id) {
+  if (selA < 0 || (selA >= 0 && selB >= 0)) { selA = id; selB = -1; route = null; }
+  else if (id === selA) { selA = -1; }
+  else { selB = id; route = findRoute(city, selA, selB); }
+  drawRoute(); updRoute();
+}
+function clearRoute(silent) { selA = selB = -1; route = null; if (!silent) { drawRoute(); updRoute(); } }
+
+/* ---------- маршрут ---------- */
+function subPath(L, ka, kb) {
+  const n = L.ord.length, pts = L.rp, ia = L.rpIdx[ka], ib = L.rpIdx[kb];
+  if (L.closed) {
+    if ((ka + 1) % n === kb) return kb === 0 ? pts.slice(ia).concat(pts.slice(1, ib + 1)) : pts.slice(ia, ib + 1);
+    if ((kb + 1) % n === ka) return (ka === 0 ? pts.slice(ib).concat(pts.slice(1, ia + 1)) : pts.slice(ib, ia + 1)).slice().reverse();
+  } else { return ia <= ib ? pts.slice(ia, ib + 1) : pts.slice(ib, ia + 1).slice().reverse(); }
+  return [];
+}
+function drawRoute() {
+  const ovl = $('ovl'), base = $('base'); if (!ovl) return;
+  const st = STYLES[S.style];
+  if (!route) {
+    base.style.opacity = 1; let o = '';
+    [[selA, '#1a8f3c'], [selB, '#c8202a']].forEach(([id, c]) => { if (id >= 0) { const s = city.stations[id]; o += '<circle cx="' + s.x + '" cy="' + s.y + '" r="17" fill="none" stroke="' + c + '" stroke-width="4"/>'; } });
+    ovl.innerHTML = o; return;
+  }
+  base.style.opacity = S.style === 'night' ? 0.22 : 0.26;
+  let o = '<g fill="none" stroke-linecap="round" stroke-linejoin="round">';
+  const parts = [];
+  route.legs.forEach(g => {
+    const L = city.lines[g.line], pts = [];
+    for (let i = 0; i < g.stops.length - 1; i++) {
+      const ka = L.ord.indexOf(g.stops[i]), kb = L.ord.indexOf(g.stops[i + 1]), sp = subPath(L, ka, kb);
+      if (pts.length) sp.shift(); sp.forEach(p => pts.push(p));
+    }
+    if (pts.length > 1) parts.push([pts, lineCol(L)]);
+  });
+  parts.forEach(([p]) => { o += '<path d="' + polyD(p) + '" stroke="' + st.bg + '" stroke-width="' + (st.lineW + 8) + '"/>'; });
+  parts.forEach(([p, c]) => { o += '<path d="' + polyD(p) + '" stroke="' + c + '" stroke-width="' + (st.lineW + 2) + '"/>'; });
+  o += '</g>';
+  const on = new Set(); route.legs.forEach(g => g.stops.forEach(s => on.add(s)));
+  o += '<g>';
+  on.forEach(id => { const s = city.stations[id]; o += '<g transform="translate(' + s.x + ' ' + s.y + ')">' + stationSVG(s, st) + '</g>'; });
+  o += '</g><g font-family=\'' + st.font + '\' font-size="13" font-weight="700" fill="' + st.ink + '" stroke="' + st.bg + '" stroke-width="4" paint-order="stroke" stroke-linejoin="round" style="pointer-events:none">';
+  on.forEach(id => { o += labelSVG(city.stations[id], st); });
+  o += '</g>';
+  [[selA, '#1a8f3c'], [selB, '#c8202a']].forEach(([id, c]) => { const s = city.stations[id]; o += '<circle cx="' + s.x + '" cy="' + s.y + '" r="17" fill="none" stroke="' + c + '" stroke-width="4"/>'; });
+  ovl.innerHTML = o;
+}
+function updRoute() {
+  const el = $('route'); if (!city) return;
+  const nm = i => city.stations[i].name;
+  const dot = (c, t) => '<span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:' + c + ';margin-right:6px"></span>' + esc(t);
+  if (selA < 0) { el.innerHTML = '<div class="empty">Нажмите на станцию отправления, затем на станцию назначения.</div>'; return; }
+  let h = '<div style="margin-bottom:6px">' + dot('#1a8f3c', nm(selA)) + '</div>';
+  if (selB < 0) { el.innerHTML = h + '<div class="empty">Теперь выберите, куда ехать.</div><div class="row" style="margin-top:8px"><button class="btn" id="rclr">Отмена</button></div>'; $('rclr').onclick = () => clearRoute(); return; }
+  h += '<div>' + dot('#c8202a', nm(selB)) + '</div>';
+  if (!route) { el.innerHTML = h + '<div class="empty" style="margin-top:8px">Пути нет.</div>'; return; }
+  h += '<div class="tot" style="margin-top:10px">' + route.total + ' <small>мин в пути</small></div><div style="color:#555046;font-size:13px">' + route.transfers + ' ' + plural(route.transfers, 'пересадка', 'пересадки', 'пересадок') + ' · ' + route.stopsCount + ' ' + plural(route.stopsCount, 'перегон', 'перегона', 'перегонов') + '</div>';
+  route.legs.forEach((g, i) => {
+    const L = city.lines[g.line], col = lineCol(L);
+    if (i > 0) h += '<div class="walk">Пересадка · ' + city.stations[g.stops[0]].walk + ' мин пешком</div>';
+    h += '<div class="leg"><i style="background:' + col + ';color:' + onCol(col) + '">' + lineCode(L) + '</i><div><b>' + esc(nm(g.stops[0])) + ' → ' + esc(nm(g.stops[g.stops.length - 1])) + '</b><small>Линия «' + esc(L.name) + '» · ' + (g.stops.length - 1) + ' ' + plural(g.stops.length - 1, 'станция', 'станции', 'станций') + ' · ' + g.min + ' мин</small></div></div>';
+  });
+  h += '<div class="row" style="margin-top:10px"><button class="btn" id="rclr">Сбросить маршрут</button></div>';
+  el.innerHTML = h; $('rclr').onclick = () => clearRoute();
+}
+function legend() {
+  const el = $('legend'); el.innerHTML = '';
+  city.lines.forEach(L => {
+    const col = lineCol(L), b = document.createElement('button');
+    b.innerHTML = '<i style="background:' + col + ';color:' + onCol(col) + '">' + lineCode(L) + '</i><span>' + esc(L.name) + '</span><em>' + L.ord.length + ' ст.</em>';
+    b.title = 'Показать линию'; b.onclick = () => flashLine(L.id); el.appendChild(b);
+  });
+}
+function flashLine(id) {
+  const L = city.lines[id], xs = L.pathPx.map(p => p[0]), ys = L.pathPx.map(p => p[1]);
+  const x0 = Math.min(...xs) - 60, x1 = Math.max(...xs) + 60, y0 = Math.min(...ys) - 60, y1 = Math.max(...ys) + 60;
+  const W = stage.clientWidth, H = stage.clientHeight;
+  view = { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, k: Math.min(1.6, Math.min(W / (x1 - x0), H / (y1 - y0))) }; applyView();
+  const p = svg.querySelector('[data-l="' + id + '"]'); if (!p) return;
+  p.animate([{ strokeWidth: STYLES[S.style].lineW }, { strokeWidth: STYLES[S.style].lineW + 9 }, { strokeWidth: STYLES[S.style].lineW }], { duration: 700, iterations: 2 });
+}
+function stats() {
+  const inter = city.stations.filter(s => s.inter).length;
+  const bad = ver && !ver.ok;
+  $('stats').innerHTML = '<span>Станций</span><b>' + city.stations.length + '</b><span>Линий</span><b>' + city.lines.length + '</b><span>Пересадок</span><b>' + inter + '</b><span>Путь, км</span><b>' + Math.round(city.km) + '</b>';
+  $('note').textContent = bad ? 'Проверка схемы: ' + ver.errs.join('; ') : 'Проверено при построении: подписи не касаются линий, станций и друг друга; углы только 0/45/90°; от любой станции есть путь к любой.' + (city.reqLines && city.lines.length - (city.opts.ring ? 1 : 0) < city.reqLines ? ' Линий вышло меньше заказанного — на этом сиде больше не уложить без пересечений.' : '');
+}
+
+/* ---------- живое метро ---------- */
+let trains = [], raf = 0, lastT = 0;
+function initTrains() {
+  trains = [];
+  let first = true;
+  city.lines.forEach(L => {
+    const n = Math.max(2, Math.round(L.rpLen / 520 * 2));
+    for (let i = 0; i < n; i++) {
+      const gold = first && !L.isRing && i === 0; if (gold) first = false;
+      trains.push({ L, pos: (L.rpLen * (i + 0.5)) / n, dir: i % 2 ? -1 : 1, dwell: 0, gold });
+    }
+  });
+  const g = $('trains'); if (!g) return;
+  const st = STYLES[S.style]; let o = '';
+  trains.forEach((t, i) => {
+    const col = t.gold ? '#e0a800' : lineCol(t.L);
+    o += '<g data-t="' + (t.gold ? 'gold' : 'n') + '" data-l="' + t.L.id + '" id="tr' + i + '"><rect x="-11" y="-6" width="22" height="12" rx="4" fill="' + col + '" stroke="' + (S.style === 'night' ? '#0e131c' : '#fff') + '" stroke-width="2"/><rect x="-6" y="-3" width="12" height="2.6" rx="1" fill="' + (t.gold ? '#fff7d0' : 'rgba(255,255,255,.85)') + '"/></g>';
+  });
+  g.innerHTML = o;
+  trains.forEach((t, i) => t.el = $('tr' + i));
+}
+function placeTrain(t) {
+  const L = t.L, cum = L.rpCum; let lo = 0, hi = cum.length - 1; const p = t.pos;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (cum[m] <= p) lo = m; else hi = m; }
+  const a = L.rp[lo], b = L.rp[hi], seg = cum[hi] - cum[lo] || 1, f = (p - cum[lo]) / seg;
+  const x = a[0] + (b[0] - a[0]) * f, y = a[1] + (b[1] - a[1]) * f;
+  const ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI + (t.dir < 0 ? 0 : 0);
+  t.el.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') rotate(' + ang.toFixed(1) + ')');
+}
+function tick(ts) {
+  raf = 0; if (!S.live || !city) return;
+  if (document.hidden) { lastT = 0; return; }
+  const dt = lastT ? Math.min(0.1, (ts - lastT) / 1000) : 0; lastT = ts;
+  const v = 62;
+  trains.forEach(t => {
+    const L = t.L;
+    if (t.dwell > 0) { t.dwell -= dt; }
+    else {
+      const prev = t.pos; t.pos += t.dir * v * dt;
+      if (L.closed) { if (t.pos >= L.rpLen) t.pos -= L.rpLen; if (t.pos < 0) t.pos += L.rpLen; }
+      else { if (t.pos >= L.rpLen) { t.pos = L.rpLen; t.dir = -1; t.dwell = 1.6; } else if (t.pos <= 0) { t.pos = 0; t.dir = 1; t.dwell = 1.6; } }
+      if (t.dwell <= 0) for (const c of L.rpStCum) { if ((prev - c) * (t.pos - c) <= 0 && Math.abs(prev - t.pos) < 40 && !(prev === c)) { t.pos = c; t.dwell = 1.1; break; } }
+    }
+    placeTrain(t);
+  });
+  raf = requestAnimationFrame(tick);
+}
+function startLive() { initTrains(); trains.forEach(placeTrain); lastT = 0; if (!raf) raf = requestAnimationFrame(tick); }
+function stopLive() { if (raf) cancelAnimationFrame(raf); raf = 0; const g = $('trains'); if (g) g.innerHTML = ''; trains = []; }
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.live && !raf) { lastT = 0; raf = requestAnimationFrame(tick); } });
+
+/* ---------- экспорт ---------- */
+function svgString() {
+  const clone = svg.cloneNode(true);
+  clone.removeAttribute('id'); clone.querySelectorAll('#trains').forEach(n => n.remove());
+  clone.querySelectorAll('[style]').forEach(n => { n.style.cursor = ''; if (!n.getAttribute('style').trim()) n.removeAttribute('style'); });
+  const bg = clone.querySelector('#bgRect'); if (bg) bg.remove();
+  const w = frame.x1 - frame.x0 + 2, h = frame.y1 - frame.y0 + 2;
+  clone.setAttribute('xmlns', NS); clone.setAttribute('viewBox', (frame.x0 - 1) + ' ' + (frame.y0 - 1) + ' ' + w + ' ' + h);
+  clone.setAttribute('width', Math.round(w)); clone.setAttribute('height', Math.round(h));
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(clone);
+}
+function dl(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
+const fname = ext => 'metro-' + curName().toLowerCase().replace(/[^a-zа-яё0-9]+/gi, '-').replace(/^-|-$/g, '') + '-' + S.seed + '.' + ext;
+function exportSVG() { if (!city) return null; const s = svgString(); dl(new Blob([s], { type: 'image/svg+xml' }), fname('svg')); return s.length; }
+function exportPNG() {
+  if (!city) return;
+  const s = svgString(), w = frame.x1 - frame.x0 + 2, h = frame.y1 - frame.y0 + 2, sc = Math.min(2, 4096 / Math.max(w, h));
+  const img = new Image();
+  img.onload = () => { const c = document.createElement('canvas'); c.width = Math.round(w * sc); c.height = Math.round(h * sc); const x = c.getContext('2d'); x.fillStyle = STYLES[S.style].bg; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height); c.toBlob(b => dl(b, fname('png')), 'image/png'); };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
+}
+
+/* ---------- панель ---------- */
+function syncUI() {
+  $('seed').value = S.seed; $('lines').value = S.lines; $('linesO').textContent = S.lines;
+  $('ring').checked = S.ring; $('river').checked = S.river; $('live').checked = S.live;
+  $('cname').value = S.custom ? S.name : ''; $('cname').placeholder = genCityName(S.seed);
+  document.querySelectorAll('.seg').forEach(g => g.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(S[g.id] === b.dataset.v))));
+  const mx = SIZES[S.size].max; $('lines').max = mx; if (S.lines > mx) { S.lines = mx; $('lines').value = mx; $('linesO').textContent = mx; }
+  document.body.className = 's-' + S.style;
+}
+function regen() { save(); syncUI(); build(); }
+function setSeed(v) { S.seed = String(v).trim() || randSeed(); regen(); }
+$('rnd').onclick = () => setSeed(randSeed());
+$('seed').addEventListener('change', e => setSeed(e.target.value));
+$('seed').addEventListener('keydown', e => { if (e.key === 'Enter') { setSeed(e.target.value); e.target.blur(); } });
+$('cname').addEventListener('input', e => { S.name = e.target.value; S.custom = !!e.target.value.trim(); save(); if (city) { render(); } });
+document.querySelectorAll('.seg').forEach(g => g.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return; S[g.id] = b.dataset.v;
+  if (g.id === 'style') { save(); syncUI(); render(); if (S.live) startLive(); legend(); } else regen();
+}));
+$('lines').addEventListener('input', e => { $('linesO').textContent = e.target.value; });
+$('lines').addEventListener('change', e => { S.lines = +e.target.value; regen(); });
+$('ring').addEventListener('change', e => { S.ring = e.target.checked; regen(); });
+$('river').addEventListener('change', e => { S.river = e.target.checked; regen(); });
+$('live').addEventListener('change', e => setLive(e.target.checked));
+function setLive(v) { S.live = v; save(); $('live').checked = v; if (v) { startLive(); } else stopLive(); }
+$('zin').onclick = () => zoomAt(1.3); $('zout').onclick = () => zoomAt(1 / 1.3); $('zfit').onclick = () => fitView();
+$('exSvg').onclick = exportSVG; $('exPng').onclick = exportPNG;
+$('reset').onclick = () => { S = Object.assign({}, DEF); save(); syncUI(); build(); };
+const help = $('help'); const toggleHelp = v => help.classList.toggle('on', v === undefined ? !help.classList.contains('on') : v);
+$('helpBtn').onclick = () => toggleHelp(true); $('helpClose').onclick = () => toggleHelp(false);
+help.addEventListener('click', e => { if (e.target === help) toggleHelp(false); });
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const tg = e.target; if (tg && (tg.tagName === 'INPUT' && tg.type === 'text')) { if (e.key === 'Escape') tg.blur(); return; }
+  const k = e.key.toLowerCase();
+  if (e.key === '?' || e.key === '/') { toggleHelp(); e.preventDefault(); }
+  else if (e.key === 'Escape') { if (help.classList.contains('on')) toggleHelp(false); else clearRoute(); }
+  else if (k === 'n' || k === 'т' || e.key === ' ') { if (tg && tg.tagName === 'BUTTON' && e.key === ' ') return; e.preventDefault(); setSeed(randSeed()); }
+  else if (k === 'l' || k === 'д') setLive(!S.live);
+  else if (k === 'r' || k === 'к') { S.ring = !S.ring; regen(); }
+  else if (k === 'w' || k === 'ц') { S.river = !S.river; regen(); }
+  else if ('1234'.includes(e.key) && e.key) { S.style = ['moscow', 'london', 'tokyo', 'night'][+e.key - 1]; save(); syncUI(); render(); if (S.live) startLive(); legend(); }
+  else if (e.key === '+' || e.key === '=') zoomAt(1.3);
+  else if (e.key === '-' || e.key === '_') zoomAt(1 / 1.3);
+  else if (k === 'f' || k === 'а') fitView();
+  else if (k === 'e' || k === 'у') exportSVG();
+  else if (k === 'p' || k === 'з') exportPNG();
+});
+let rzT = 0; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (city) fitView(); }, 80); });
+syncUI(); build();
+window.__metro = { get city() { return city; }, get S() { return S; }, get route() { return route; }, pick: pickStation, ver: () => ver, setLive, exportSVG: svgString, regen };
+
+</script>
+</body>
+</html>

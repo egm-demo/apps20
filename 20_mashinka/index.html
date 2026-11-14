@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пишущая машинка</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:"Courier New",Courier,monospace;color:#2a2218;overflow-x:hidden;
+ background:
+  radial-gradient(ellipse 70% 55% at 42% 38%,rgba(255,226,170,.30),transparent 70%),
+  radial-gradient(circle at 12% 88%,rgba(60,30,10,.0) 0 40px,rgba(60,30,10,.16) 41px 43px,transparent 44px),
+  repeating-linear-gradient(0deg,rgba(0,0,0,.0) 0 53px,rgba(40,20,5,.35) 53px 55px),
+  repeating-linear-gradient(0deg,rgba(255,220,170,.05) 0 9px,rgba(0,0,0,.05) 9px 17px,rgba(0,0,0,0) 17px 26px),
+  linear-gradient(180deg,#8b5b35,#7a4c2a 60%,#6b4124);
+ min-height:100vh}
+button{font:inherit;color:inherit;cursor:pointer}
+#wrap{display:grid;grid-template-columns:minmax(0,1fr) 318px;gap:18px;padding:10px 18px 18px;max-width:1500px;margin:0 auto;align-items:start}
+.tag{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;background:#f1e7c8;color:#2a2218;border:1px solid #b9a877;border-radius:2px;font-size:14px;text-decoration:none;box-shadow:0 2px 0 rgba(0,0,0,.25)}
+a.tag:hover{background:#fff6d8;text-decoration:underline}
+#topbar{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+#topbar .ttl{font:italic 700 20px Georgia,serif;color:#f6ead0;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+#topbar .ttl small{font:13px "Courier New",monospace;font-style:normal;color:#fff3d4;margin-left:8px}
+#machine{--k:min(52px,max(23px,calc((min(100vw - 380px,1060px) - 80px)/17)));
+ position:relative;border-radius:26px 26px 14px 14px;padding:14px 20px 20px;
+ background:linear-gradient(180deg,#478468 0,#2f6049 26%,#244d3b 70%,#1d4030 100%);
+ box-shadow:inset 0 3px 0 rgba(255,255,255,.28),inset 0 0 0 7px #234a39,inset 0 0 0 8px #d9be6b,inset 0 0 0 9px #173325,0 22px 34px rgba(30,12,0,.5),0 3px 0 #10261b}
+#carr,#basket{display:block;width:100%;border-radius:8px}
+#carr{touch-action:manipulation}
+#statusbar{display:flex;align-items:center;gap:12px;margin:8px 0 6px;color:#f6ecd0;font-size:14px;flex-wrap:wrap}
+.plate{font:italic 700 15px Georgia,serif;letter-spacing:1px;color:#2c2208;padding:3px 12px;border-radius:3px;background:linear-gradient(180deg,#f2dc8a,#c9a940);box-shadow:inset 0 1px 0 #fff4c0,0 1px 2px rgba(0,0,0,.5)}
+#pos{font-variant-numeric:tabular-nums}
+#msg{flex:1;min-width:140px;text-align:right;color:#ffe8a8}
+#msg.warn{color:#ffc9a8}
+#kb{display:flex;flex-direction:column;gap:calc(var(--k)*.14);align-items:flex-start;margin-top:6px;padding-top:6px;user-select:none}
+.krow{display:flex;gap:calc(var(--k)*.14);align-items:center}
+.key{position:relative;width:var(--k);height:var(--k);border-radius:50%;border:0;padding:0;flex:none;
+ background:radial-gradient(circle at 34% 28%,#fffaf0 0,#efe5c6 48%,#cdbf93 100%);
+ box-shadow:0 0 0 calc(var(--k)*.07) #c4c9c6,0 0 0 calc(var(--k)*.095) #50554f,0 calc(var(--k)*.12) 0 calc(var(--k)*.095) #1b241f,0 calc(var(--k)*.2) calc(var(--k)*.12) calc(var(--k)*.08) rgba(0,0,0,.45);
+ color:#1c1b17;font:700 calc(var(--k)*.4)/1 "Franklin Gothic Medium","Segoe UI",sans-serif;transition:transform .05s,box-shadow .05s}
+.key .a{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-bottom:calc(var(--k)*.06)}
+.key .b{position:absolute;right:calc(var(--k)*.17);bottom:calc(var(--k)*.1);font-size:max(10px,calc(var(--k)*.25));color:#2f2b1e;font-weight:400}
+.key.down,.key:active{transform:translateY(calc(var(--k)*.1));box-shadow:0 0 0 calc(var(--k)*.07) #c4c9c6,0 0 0 calc(var(--k)*.095) #50554f,0 calc(var(--k)*.03) 0 calc(var(--k)*.095) #1b241f;background:radial-gradient(circle at 34% 28%,#f2e8cb,#d9cc9f 55%,#b4a679)}
+.key.wide{border-radius:calc(var(--k)*.5);font-size:calc(var(--k)*.26);font-weight:400}
+.key.wide .b{display:none}
+.key.on{background:radial-gradient(circle at 34% 28%,#ffe9a0,#e2c05a 60%,#b08e2a)}
+#space{width:calc(var(--k)*7.6);height:calc(var(--k)*.82);border-radius:calc(var(--k)*.4)}
+.kfoot{display:flex;gap:calc(var(--k)*.14);align-items:center}
+.kfoot .tools{margin-left:auto;display:flex;gap:8px}
+.mini{height:36px;padding:0 12px;border-radius:4px;border:1px solid #0f2419;background:linear-gradient(180deg,#e9edea,#b7beb9);color:#17211b;font-weight:700;font-size:13px;box-shadow:0 2px 0 #0f2419}
+.mini:active{transform:translateY(2px);box-shadow:none}
+/* карточка справа */
+#side{background:#efe6cb;border:1px solid #b9a877;border-radius:3px;padding:12px 14px 14px;box-shadow:0 14px 26px rgba(30,12,0,.45),0 0 0 6px #e3d6b0;
+ background-image:repeating-linear-gradient(transparent 0 25px,#d5c8a1 25px 26px);background-position:0 8px}
+#side h2{font:700 12px "Courier New",monospace;letter-spacing:2px;text-transform:uppercase;margin:12px 0 6px;padding-bottom:3px;border-bottom:2px dashed #7d6f4c;color:#2a2218}
+#side h2:first-child{margin-top:0}
+#stack{position:relative;height:178px;margin:2px 0 6px}
+#stack canvas{position:absolute;bottom:0;box-shadow:0 2px 5px rgba(0,0,0,.4);cursor:pointer;border:0;background:#fff}
+#stack .none{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font-style:italic;color:#2f281c;font-size:13px;border:2px dashed #9a8c68;padding:0 20px}
+#stackcnt{font-size:13px;margin:0 0 6px}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin:5px 0}
+.chip{min-height:36px;padding:0 10px;border:1.5px solid #2a2218;background:#f8f1dc;border-radius:3px;font:700 13px "Courier New",monospace;color:#2a2218;display:inline-flex;align-items:center;gap:6px}
+.chip:hover{background:#fff9e4}
+.chip[aria-pressed=true]{background:#2a2218;color:#f8f1dc}
+.sw{width:14px;height:14px;border:1px solid #2a2218;display:inline-block}
+.papers{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.papers .chip{justify-content:flex-start}
+.papers .chip:last-child{grid-column:1/-1}
+.meter{height:12px;border:1.5px solid #2a2218;background:#f8f1dc;margin:7px 0 3px;position:relative}
+.meter i{display:block;height:100%;background:#2a2218;transition:width .3s}
+.meter.red i{background:#a3201c}
+.meter.low i{background:#c46a10}
+#inkTxt{font-size:13px;margin:0 0 4px}
+.sl{display:block;margin:6px 0}
+.sl .rw{display:flex;justify-content:space-between;font-size:13px}
+.sl output{font-weight:700}
+input[type=range]{width:100%;height:26px;margin:0;accent-color:#2f6049;background:transparent}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.btns .chip{justify-content:center}
+.hintline{font-size:12.5px;margin:8px 0 0;color:#3b3224;line-height:1.4}
+#viewer,#help{position:fixed;inset:0;background:rgba(20,10,0,.78);display:none;z-index:20;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:16px}
+#viewer.on,#help.on{display:flex}
+#vcv{max-height:calc(100vh - 100px);max-width:100%;box-shadow:0 10px 40px #000;background:#fff}
+#help .box{background:#f1e7c8;color:#2a2218;max-width:600px;width:100%;padding:18px 24px 20px;border:3px double #7d6f4c;font-size:14px;line-height:1.7;max-height:94vh;overflow:auto}
+#help h3{margin:0 0 6px;font:italic 700 22px Georgia,serif}
+#help .r{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dotted #8a7c58}
+#help kbd{font:700 13px "Courier New",monospace;border:1.5px solid #2a2218;border-radius:3px;padding:0 6px;background:#fbf6e4;white-space:nowrap}
+@media (max-width:980px){
+ #wrap{grid-template-columns:minmax(0,1fr);padding:8px 10px 16px}
+ #machine{--k:max(17px,calc((100vw - 64px)/16.8));padding:10px 12px 14px}
+ .kfoot .tools{margin-left:0}
+}
+</style>
+</head>
+<body>
+<div id="wrap">
+ <div id="left">
+  <div id="topbar"><a class="tag" href="../index.html">← Все приложения</a><span class="ttl">Пишущая машинка<small>Лист, который не исправить</small></span></div>
+  <div id="machine">
+   <canvas id="carr"></canvas>
+   <div id="statusbar"><span class="plate">ПРОМЕТЕЙ&nbsp;7</span><span id="pos"></span><span id="msg" role="status" aria-live="polite"></span></div>
+   <canvas id="basket"></canvas>
+   <div id="kb"></div>
+  </div>
+ </div>
+ <aside id="side">
+  <h2>Стопка готовых листов</h2>
+  <div id="stack"></div>
+  <p id="stackcnt"></p>
+  <div class="row"><button class="chip" id="bEject" title="Ctrl+Enter">Вынуть лист</button><button class="chip" id="bView" title="F7">Весь лист</button></div>
+  <h2>Бумага</h2>
+  <div class="papers" id="papers"></div>
+  <h2>Лента</h2>
+  <div class="row"><button class="chip" id="rBlack" aria-pressed="true"><i class="sw" style="background:#1b1a18"></i>Чёрная</button><button class="chip" id="rRed" aria-pressed="false"><i class="sw" style="background:#a3201c"></i>Красная</button></div>
+  <div class="meter" id="meter"><i></i></div>
+  <p id="inkTxt"></p>
+  <button class="chip" id="bRibbon" title="F4">Сменить ленту</button>
+  <h2>Печать</h2>
+  <label class="sl"><span class="rw">Неровность печати <output id="o_wob"></output></span><input type="range" id="wob" min="0" max="200" step="10"></label>
+  <label class="sl"><span class="rw">Расход ленты <output id="o_drain"></output></span><input type="range" id="drain" min="20" max="300" step="10"></label>
+  <label class="sl"><span class="rw">Сцепление рычагов <output id="o_jam"></output></span><input type="range" id="jam" min="0" max="140" step="5"></label>
+  <label class="sl"><span class="rw">Звонок: знаков до края <output id="o_bell"></output></span><input type="range" id="bell" min="3" max="15" step="1"></label>
+  <div class="row">
+   <button class="chip" id="tAuto" aria-pressed="false">Рычаг сам</button>
+   <button class="chip" id="tCorr" aria-pressed="false" title="F3">Корректор</button>
+   <button class="chip" id="tSound" aria-pressed="true">Звук</button>
+   <button class="chip" id="tLay" title="Раскладка экранных клавиш">Рус</button>
+  </div>
+  <div class="btns">
+   <button class="chip" id="bPng" title="F8">Скан PNG</button>
+   <button class="chip" id="bTxt">Текст .txt</button>
+   <button class="chip" id="bHelp" title="F1">Клавиши</button>
+   <button class="chip" id="bReset">Сбросить</button>
+  </div>
+  <p class="hintline">Печатайте на настоящей клавиатуре: русские и латинские буквы подхватываются сами. Стереть нельзя.</p>
+ </aside>
+</div>
+<div id="viewer"><canvas id="vcv"></canvas><div class="row"><button class="chip" id="vPng">Скачать PNG</button><button class="chip" id="vClose">Закрыть (Esc)</button></div></div>
+<div id="help"><div class="box">
+ <h3>Как работать</h3>
+ <div class="r"><span>Печать</span><kbd>любые буквы</kbd></div>
+ <div class="r"><span>Возврат каретки (рычаг)</span><kbd>Enter</kbd></div>
+ <div class="r"><span>Каретка на знак назад (не стирает)</span><kbd>Backspace</kbd></div>
+ <div class="r"><span>Забить прежний знак «х» поверх</span><kbd>Delete</kbd></div>
+ <div class="r"><span>Корректор вкл/выкл (Backspace замажет)</span><kbd>F3</kbd></div>
+ <div class="r"><span>Лента: чёрная / красная</span><kbd>F2</kbd></div>
+ <div class="r"><span>Сменить ленту</span><kbd>F4</kbd></div>
+ <div class="r"><span>Вынуть лист, вставить новый</span><kbd>Ctrl+Enter</kbd></div>
+ <div class="r"><span>Весь лист крупно</span><kbd>F7</kbd></div>
+ <div class="r"><span>Скачать скан PNG</span><kbd>F8</kbd></div>
+ <div class="r"><span>Эта подсказка</span><kbd>F1</kbd></div>
+ <div class="r"><span>Закрыть окно</span><kbd>Esc</kbd></div>
+ <p style="margin:10px 0 0;font-size:13px;line-height:1.5">Буква «?» и прочие знаки печатаются как обычно, поэтому подсказка на F1. Если бить по клавишам слишком быстро, соседние рычаги сцепятся. Попробуйте напечатать SOS.</p>
+ <div class="row" style="margin-top:10px"><button class="chip" id="hClose">Закрыть</button></div>
+</div></div>
+
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const KEY='a20_mashinka_v1';
+const COLS=60,ROWS=45,CW=15,LH=30,MX=96,MY=100,SW=MX*2+COLS*CW,SH=MY*2+ROWS*LH,SC=1.5,FS=25;
+const PAPERS=[{id:'white',n:'Белая',c:'#f6f3ea',r0:0},{id:'old',n:'Пожелтевшая',c:'#e6d3a0',r0:0},{id:'ruled',n:'В линейку',c:'#f4f1e6',r0:0},{id:'tele',n:'Телеграмма',c:'#efe4b6',r0:9},{id:'carbon',n:'С копиркой',c:'#e7e5de',r0:0}];
+const paperOf=id=>PAPERS.find(p=>p.id===id)||PAPERS[0];
+const INK=[[27,26,24],[163,32,28]],CARB=[34,46,128];
+const DEF={wob:100,drain:100,jam:55,bell:7,auto:false,corr:false,sound:true,lay:'ru',ribbon:0,paper:'white'};
+let S=Object.assign({},DEF);
+let ink=1;                 // остаток ленты 0..1
+let cur={type:'white',ops:[],row:0,col:0,n:0};
+let stack=[];              // готовые листы {type,ops,n,thumb}
+let sheetsDone=0;
+
+// ---------- вспомогательное ----------
+function rng(seed){let a=seed|0;return function(){a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const rr=(v,n)=>{const m=Math.pow(10,n||2);return Math.round(v*m)/m;};
+const ease=t=>t<0?0:t>1?1:t*t*(3-2*t);
+function mk(w,h){const c=document.createElement('canvas');c.width=Math.max(1,Math.round(w));c.height=Math.max(1,Math.round(h));return c;}
+
+// ---------- клавиатура ----------
+const KR=[
+ [['Backquote','ё','`','Ё','~'],['Digit1','1','1','!','!'],['Digit2','2','2','"','@'],['Digit3','3','3','№','#'],['Digit4','4','4',';','$'],['Digit5','5','5','%','%'],['Digit6','6','6',':','^'],['Digit7','7','7','?','&'],['Digit8','8','8','*','*'],['Digit9','9','9','(','('],['Digit0','0','0',')',')'],['Minus','-','-','_','_'],['Equal','=','=','+','+']],
+ [['KeyQ','й','q'],['KeyW','ц','w'],['KeyE','у','e'],['KeyR','к','r'],['KeyT','е','t'],['KeyY','н','y'],['KeyU','г','u'],['KeyI','ш','i'],['KeyO','щ','o'],['KeyP','з','p'],['BracketLeft','х','[','Х','{'],['BracketRight','ъ',']','Ъ','}']],
+ [['KeyA','ф','a'],['KeyS','ы','s'],['KeyD','в','d'],['KeyF','а','f'],['KeyG','п','g'],['KeyH','р','h'],['KeyJ','о','j'],['KeyK','л','k'],['KeyL','д','l'],['Semicolon','ж',';','Ж',':'],['Quote','э',"'",'Э','"']],
+ [['KeyZ','я','z'],['KeyX','ч','x'],['KeyC','с','c'],['KeyV','м','v'],['KeyB','и','b'],['KeyN','т','n'],['KeyM','ь','m'],['Comma','б',',','Б','<'],['Period','ю','.','Ю','>'],['Slash','.','/',',','?']]
+];
+const KEYS=[];const byCode={};const charIdx={};
+KR.forEach((row,ri)=>row.forEach(k=>{
+ const o={code:k[0],ru:k[1],en:k[2],ruS:k[3]||k[1].toUpperCase(),enS:k[4]||k[2].toUpperCase(),row:ri,i:KEYS.length};
+ KEYS.push(o);byCode[o.code]=o;
+ for(const ch of [o.ru,o.en,o.ruS,o.enS]){const l=ch.toLowerCase();if(!(l in charIdx))charIdx[l]=o.i;}
+}));
+const NL=KEYS.length;
+function leverOf(ch){const l=ch.toLowerCase();if(l in charIdx)return charIdx[l];return ch.charCodeAt(0)%NL;}
+let shiftSticky=false,shiftHeld=false;
+const kbEl=$('kb');let keyEls={},capEls=[];
+function buildKb(){
+ kbEl.innerHTML='';keyEls={};capEls=[];
+ const offs=[0,.55,.85,1.35];
+ KR.forEach((row,ri)=>{
+  const r=document.createElement('div');r.className='krow';r.style.marginLeft='calc(var(--k)*'+offs[ri]+')';
+  if(ri===3){const sh=document.createElement('button');sh.className='key wide';sh.id='kShift';sh.style.width='calc(var(--k)*1.5)';sh.textContent='Верхний';sh.setAttribute('aria-label','Верхний регистр (Shift)');sh.addEventListener('pointerdown',e=>{e.preventDefault();audioInit();shiftSticky=!shiftSticky;sh.classList.toggle('on',shiftSticky);refreshCaps();});r.appendChild(sh);}
+  row.forEach(k=>{const o=byCode[k[0]];const b=document.createElement('button');b.className='key';b.tabIndex=-1;b.dataset.code=o.code;
+   b.innerHTML='<span class="a"></span><span class="b"></span>';
+   b.addEventListener('pointerdown',e=>{e.preventDefault();audioInit();cancelGreet();const sh=shiftSticky;shiftSticky=false;const s=$('kShift');if(s)s.classList.remove('on');const ch=keyChar(o,sh);typeChar(ch);flash(o.code);refreshCaps();});
+   r.appendChild(b);keyEls[o.code]=b;capEls.push([o,b]);});
+  if(ri===0){const bs=document.createElement('button');bs.className='key wide';bs.style.width='calc(var(--k)*1.5)';bs.textContent='Назад';bs.setAttribute('aria-label','Каретка на знак назад');bs.addEventListener('pointerdown',e=>{e.preventDefault();audioInit();cancelGreet();doBack();});r.appendChild(bs);keyEls.Backspace=bs;}
+  if(ri===2){const en=document.createElement('button');en.className='key wide';en.style.width='calc(var(--k)*1.9)';en.textContent='Возврат';en.setAttribute('aria-label','Возврат каретки');en.addEventListener('pointerdown',e=>{e.preventDefault();audioInit();cancelGreet();doReturn();});r.appendChild(en);keyEls.Enter=en;}
+  kbEl.appendChild(r);
+ });
+ const f=document.createElement('div');f.className='kfoot';f.style.marginLeft='calc(var(--k)*2.7)';
+ const sp=document.createElement('button');sp.className='key wide';sp.id='space';sp.textContent='Пробел';sp.addEventListener('pointerdown',e=>{e.preventDefault();audioInit();cancelGreet();typeChar(' ');flash('Space');});f.appendChild(sp);keyEls.Space=sp;
+ const dl=document.createElement('button');dl.className='key wide';dl.style.width='calc(var(--k)*1.5)';dl.textContent='Забить';dl.setAttribute('aria-label','Забить знак буквой х');dl.addEventListener('pointerdown',e=>{e.preventDefault();audioInit();cancelGreet();doOver();});f.appendChild(dl);keyEls.Delete=dl;
+ kbEl.appendChild(f);
+ refreshCaps();
+}
+function keyChar(o,sh){const lay=S.lay;if(lay==='ru')return sh?o.ruS:o.ru;return sh?o.enS:o.en;}
+function refreshCaps(){
+ const up=shiftSticky||shiftHeld;
+ for(const [o,b] of capEls){
+  const a=b.firstChild,c=b.lastChild;const other=S.lay==='ru'?'en':'ru';
+  const m=keyChar(o,false),n=other==='ru'?o.ru:o.en;
+  a.textContent=(/[a-zа-яё]/i.test(m))?(up?keyChar(o,true):m.toUpperCase()):(up?keyChar(o,true):m);
+  c.textContent=/[a-zа-яё]/i.test(n)?n.toUpperCase():n;
+  if(o.row===0&&up&&false)c.textContent='';
+ }
+}
+const flashT={};
+function flash(code){const b=keyEls[code];if(!b)return;b.classList.add('down');clearTimeout(flashT[code]);flashT[code]=setTimeout(()=>b.classList.remove('down'),110);}
+
+// ---------- звук ----------
+let AC=null,mst=null,nbuf=null;
+function audioInit(){
+ if(AC){if(AC.state==='suspended')AC.resume();return;}
+ try{AC=new (window.AudioContext||window.webkitAudioContext)();mst=AC.createGain();mst.gain.value=.9;const cp=AC.createDynamicsCompressor();mst.connect(cp);cp.connect(AC.destination);
+  nbuf=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=nbuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}catch(e){AC=null;}
+}
+function snd(){return AC&&S.sound&&AC.state!=='closed';}
+function noise(t,dur,f,q,g,f2){const s=AC.createBufferSource();s.buffer=nbuf;s.loop=true;const b=AC.createBiquadFilter();b.type='bandpass';b.frequency.setValueAtTime(f,t);if(f2)b.frequency.exponentialRampToValueAtTime(f2,t+dur);b.Q.value=q;const v=AC.createGain();v.gain.setValueAtTime(g,t);v.gain.exponentialRampToValueAtTime(.0008,t+dur);s.connect(b);b.connect(v);v.connect(mst);s.start(t,Math.random()*.5);s.stop(t+dur+.02);}
+function tone(t,f,dur,g,type,f2){const o=AC.createOscillator();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+dur);const v=AC.createGain();v.gain.setValueAtTime(g,t);v.gain.exponentialRampToValueAtTime(.0008,t+dur);o.connect(v);v.connect(mst);o.start(t);o.stop(t+dur+.02);}
+function sndKey(p){if(!snd())return;const t=AC.currentTime;noise(t,.03,1500+Math.random()*1800,1.4,.55*p);noise(t,.012,4200,2,.3*p);tone(t,110+Math.random()*30,.07,.5*p,'sine',60);tone(t+.045,2300+Math.random()*300,.02,.05,'square');}
+function sndSpace(){if(!snd())return;const t=AC.currentTime;noise(t,.05,500,1,.45);tone(t,85,.09,.5,'sine',55);}
+function sndBell(){if(!snd())return;const t=AC.currentTime;[[2093,.3],[3136,.18],[4186,.1],[5587,.05]].forEach(a=>tone(t,a[0],1.7,a[1]*.55,'sine'));noise(t,.02,5000,2,.2);}
+function sndReturn(){if(!snd())return;const t=AC.currentTime;for(let i=0;i<10;i++){noise(t+i*.026,.012,2200+i*80,3,.3);}noise(t,.3,500,.8,.22,1400);tone(t+.31,95,.12,.7,'sine',50);noise(t+.31,.05,700,1,.5);}
+function sndDull(){if(!snd())return;const t=AC.currentTime;tone(t,150,.08,.35,'triangle',90);noise(t,.04,600,1,.25);}
+function sndJam(){if(!snd())return;const t=AC.currentTime;noise(t,.05,2500,2,.5);tone(t,200,.12,.5,'sawtooth',70);noise(t+.07,.03,3500,2,.35);}
+function sndFree(){if(!snd())return;const t=AC.currentTime;noise(t,.03,3000,3,.35);tone(t,1200,.03,.12,'square',600);}
+function sndRibbon(){if(!snd())return;const t=AC.currentTime;for(let i=0;i<6;i++)noise(t+i*.05,.02,1800+i*200,3,.3);tone(t+.3,140,.1,.4,'sine',80);}
+function sndCorr(){if(!snd())return;const t=AC.currentTime;noise(t,.18,3000,.6,.12,1200);}
+
+// ---------- лист: бумага и печать ----------
+function paperBg(type,sc){
+ const c=mk(SW*sc,SH*sc),g=c.getContext('2d');g.scale(sc,sc);
+ const P=paperOf(type),r=rng(type.length*977+13);
+ g.fillStyle=P.c;g.fillRect(0,0,SW,SH);
+ if(type==='old'){
+  for(let i=0;i<70;i++){const x=r()*SW,y=r()*SH,rad=4+r()*26;const q=g.createRadialGradient(x,y,0,x,y,rad);q.addColorStop(0,'rgba(140,95,30,'+(.05+r()*.12).toFixed(3)+')');q.addColorStop(1,'rgba(140,95,30,0)');g.fillStyle=q;g.fillRect(x-rad,y-rad,rad*2,rad*2);}
+  const v=g.createRadialGradient(SW/2,SH/2,SH*.3,SW/2,SH/2,SH*.75);v.addColorStop(0,'rgba(120,80,20,0)');v.addColorStop(1,'rgba(120,80,20,.28)');g.fillStyle=v;g.fillRect(0,0,SW,SH);
+ }
+ if(type==='ruled'){
+  g.strokeStyle='rgba(85,125,170,.55)';g.lineWidth=1.2;
+  for(let i=-1;i<=ROWS+1;i++){const y=MY+i*LH+LH*.8+5;if(y<30||y>SH-30)continue;g.beginPath();g.moveTo(0,y);g.lineTo(SW,y);g.stroke();}
+  g.strokeStyle='rgba(190,60,55,.6)';g.lineWidth=1.6;g.beginPath();g.moveTo(MX-38,0);g.lineTo(MX-38,SH);g.stroke();g.beginPath();g.moveTo(MX-43,0);g.lineTo(MX-43,SH);g.stroke();
+ }
+ if(type==='carbon'){
+  for(let i=0;i<26;i++){const x=r()<.5?r()*120:SW-r()*120,y=r()*SH,rad=30+r()*90;const q=g.createRadialGradient(x,y,0,x,y,rad);q.addColorStop(0,'rgba(40,55,130,'+(.05+r()*.05).toFixed(3)+')');q.addColorStop(1,'rgba(40,55,130,0)');g.fillStyle=q;g.fillRect(x-rad,y-rad,rad*2,rad*2);}
+  g.save();g.translate(SW-170,70);g.rotate(.12);g.strokeStyle='rgba(50,65,140,.5)';g.lineWidth=3;g.strokeRect(-70,-26,140,52);g.fillStyle='rgba(50,65,140,.55)';g.font='700 30px Georgia,serif';g.textAlign='center';g.fillText('КОПИЯ',0,11);g.restore();
+ }
+ if(type==='tele'){
+  const col='#3d5d70';g.strokeStyle=col;g.fillStyle=col;
+  g.lineWidth=4;g.strokeRect(34,34,SW-68,328);g.lineWidth=1.2;g.strokeRect(44,44,SW-88,308);
+  g.textAlign='center';g.font='66px Impact,"Franklin Gothic Medium",sans-serif';g.fillText('ТЕЛЕГРАММА',SW/2,128);
+  g.font='italic 20px Georgia,serif';g.fillText('Министерство связи  ·  телеграфное отделение',SW/2,160);
+  g.textAlign='left';g.font='17px "Courier New",monospace';
+  const fld=[['Кому',196],['Куда',236],['Откуда',276]];
+  for(const f of fld){g.fillText(f[0],70,f[1]);g.lineWidth=1;g.setLineDash([2,3]);g.beginPath();g.moveTo(160,f[1]+3);g.lineTo(SW-300,f[1]+3);g.stroke();g.setLineDash([]);}
+  g.strokeRect(SW-270,176,200,120);g.font='15px "Courier New",monospace';g.fillText('№ ______',SW-258,206);g.fillText('слов ____',SW-258,238);g.fillText('принял ___',SW-258,270);
+  g.lineWidth=2;g.beginPath();g.moveTo(44,322);g.lineTo(SW-44,322);g.stroke();g.font='13px "Courier New",monospace';g.fillText('Текст телеграммы печатать ниже',70,344);
+  g.strokeStyle='rgba(61,93,112,.25)';g.lineWidth=1;for(let i=9;i<ROWS;i++){const y=MY+i*LH+LH*.8+5;g.beginPath();g.moveTo(MX-40,y);g.lineTo(SW-MX+40,y);g.stroke();}
+ }
+ // волокна
+ for(let i=0;i<500;i++){g.fillStyle='rgba('+(type==='old'?'110,80,30':'90,80,60')+','+(.03+r()*.06).toFixed(3)+')';g.fillRect(r()*SW,r()*SH,.8+r()*2.2,.6);}
+ return c;
+}
+let tmpC=null,tmpSc=0;
+function drawOp(g,op,sc,type){
+ const k=op[0],c=op[1],r=op[2],cx=MX+c*CW+CW/2,by=MY+r*LH+LH*.8;
+ if(k==='w'){ // корректор
+  const q=rng(op[3]);g.save();g.scale(sc,sc);g.translate(cx+op[4],by-LH*.36+op[5]);
+  const w=CW*.62+q()*2,h=LH*.5;g.beginPath();
+  for(let i=0;i<14;i++){const a=i/14*Math.PI*2,rx=w*(.92+q()*.22),ry=h*(.9+q()*.2);const x=Math.cos(a)*rx,y=Math.sin(a)*ry;if(i)g.lineTo(x,y);else g.moveTo(x,y);}
+  g.closePath();g.shadowColor='rgba(60,50,30,.35)';g.shadowBlur=2.2;g.fillStyle='#fdfcf7';g.fill();g.shadowBlur=0;
+  g.fillStyle='rgba(235,230,215,.7)';g.beginPath();g.ellipse(-w*.2,-h*.25,w*.45,h*.22,0,0,7);g.fill();
+  g.restore();return;
+ }
+ const ch=op[3],dx=op[4],dy=op[5],rt=op[6],pr=op[7],ti=op[8],ci=op[9],ik=op[10],sd=op[11];
+ const q=rng(sd);
+ if(!tmpC||tmpSc!==sc){tmpC=mk(60*sc,72*sc);tmpSc=sc;}
+ const t=tmpC.getContext('2d');t.setTransform(1,0,0,1,0,0);t.clearRect(0,0,tmpC.width,tmpC.height);t.scale(sc,sc);t.translate(30,52);t.rotate(rt);
+ let col=ci===1?INK[1]:(type==='carbon'?CARB:INK[0]);
+ const a0=ik<=.004?0:(.16+.84*Math.pow(ik,.55))*(.5+.5*pr);
+ t.font=FS+'px "Courier New",Courier,monospace';t.textAlign='center';t.textBaseline='alphabetic';
+ if(a0>0){
+  const aL=clamp(a0*(1+ti),0,1),aR=clamp(a0*(1-ti),0,1);
+  const gr=t.createLinearGradient(-8,0,8,0);gr.addColorStop(0,'rgba('+col+','+aL.toFixed(3)+')');gr.addColorStop(1,'rgba('+col+','+aR.toFixed(3)+')');
+  t.fillStyle=gr;t.strokeStyle=gr;
+  if(type==='carbon'){t.shadowColor='rgba('+col+','+(a0*.55).toFixed(3)+')';t.shadowBlur=2.4;}
+  t.lineWidth=.35+pr*.85;t.lineJoin='round';
+  t.fillText(ch,0,0);t.strokeText(ch,0,0);
+  t.shadowBlur=0;
+  const l=ch.toLowerCase();
+  if(l==='о'||l==='o'){if(ch===l){t.fillStyle='rgba('+col+','+(a0*.92).toFixed(3)+')';t.beginPath();t.ellipse(0,-5.6,2.9,3.6,0,0,7);t.fill();}}
+  else if(l==='е'||l==='e'){if(ch===l){t.fillStyle='rgba('+col+','+(a0*.9).toFixed(3)+')';t.beginPath();t.ellipse(0,-7.4,2.5,1.9,0,0,7);t.fill();}}
+  // дырки от истощённой ленты
+  const holes=Math.round((1-ik)*14+(1-pr)*8+2);
+  t.globalCompositeOperation='destination-out';
+  for(let i=0;i<holes;i++){t.fillStyle='rgba(0,0,0,'+(.55+q()*.45).toFixed(2)+')';const x=(q()-.5)*14,y=-q()*17+1,s=.5+q()*1.3;t.beginPath();t.ellipse(x,y,s,s*(.6+q()*.8),q()*3,0,7);t.fill();}
+  t.globalCompositeOperation='source-over';
+ }else{ // слепая печать: только оттиск
+  t.fillStyle='rgba(255,255,255,.7)';t.fillText(ch,.8,.8);t.fillStyle='rgba(60,50,30,.16)';t.fillText(ch,0,0);
+ }
+ g.drawImage(tmpC,(cx+dx-30)*sc,(by+dy-52)*sc);
+}
+function newLayers(type){return {paper:paperBg(type,SC),ink:mk(SW*SC,SH*SC),type:type};}
+function renderSheet(sh,sc){const L={paper:paperBg(sh.type,sc),ink:mk(SW*sc,SH*sc),type:sh.type};const g=L.ink.getContext('2d');for(const op of sh.ops)drawOp(g,op,sc,sh.type);return L;}
+let layers=newLayers('white');
+function composeSheet(L){const c=mk(L.paper.width,L.paper.height);const g=c.getContext('2d');g.drawImage(L.paper,0,0);g.drawImage(L.ink,0,0);return c;}
+function sheetText(sh){
+ const grid={};let maxR=-1;
+ for(const op of sh.ops){const r=op[2],c=op[1];(grid[r]=grid[r]||{})[c]=op[0]==='w'?' ':op[3];if(r>maxR)maxR=r;}
+ const lines=[];
+ for(let r=0;r<=maxR;r++){const row=grid[r]||{};let s='';let mc=-1;for(const c in row)if(+c>mc)mc=+c;for(let c=0;c<=mc;c++)s+=row[c]!==undefined?row[c]:' ';lines.push(s.replace(/\s+$/,''));}
+ while(lines.length&&!lines[lines.length-1])lines.pop();
+ return lines.join('\n');
+}
+
+// ---------- состояние каретки и анимации ----------
+let colF=0,rowF=0,colRate=40;
+let levers=[];              // {i,t0}
+let jam=null;               // {a,b,until}
+let retAnim=0,bellT=0,ribJump=0,spool=0,knob=0,lastStrike=null,strikeCount=0;
+let ej=null;                // анимация смены листа
+let lastTyped=''; 
+function setMsg(t,warn){const m=$('msg');m.textContent=t||'';m.classList.toggle('warn',!!warn);clearTimeout(setMsg.t);if(t)setMsg.t=setTimeout(()=>{m.textContent='';},4200);}
+function startRow(type){return paperOf(type).r0;}
+
+function typeChar(ch,opts){
+ opts=opts||{};
+ const now=performance.now();
+ if(jam&&jam.until>now){sndDull();setMsg('Рычаги сцепились. Подождите, пока расцепятся.',true);return false;}
+ if(ch===' '){
+  if(cur.col>=COLS){sndDull();lockMsg();return false;}
+  cur.col++;sndSpace();bellCheck();afterChange();return true;
+ }
+ if(cur.col>=COLS){
+  if(S.auto&&!opts.noAuto){doReturn(true);}
+  else{sndDull();lockMsg();return false;}
+ }
+ const li=leverOf(ch);
+ if(!opts.auto&&S.jam>0&&lastStrike&&now-lastStrike.t<S.jam&&li!==lastStrike.i&&Math.abs(li-lastStrike.i)<=4&&Math.random()<.75){
+  jam={a:lastStrike.i,b:li,until:now+800};sndJam();setMsg('Клинит! Рычаги сцепились.',true);
+  setTimeout(()=>{sndFree();setMsg('Расцепились. Печатайте помедленнее.');kick();},800);kick();return false;
+ }
+ lastStrike={t:now,i:li};strikeCount++;
+ const w=S.wob/100,R=Math.random;
+ const wave=.14*Math.sin(strikeCount*.13)+.08*Math.sin(strikeCount*.41);
+ let pr=clamp(.78+wave+(R()-.5)*.4*Math.max(.3,w),.3,1);
+ if('.,:;\'-'.indexOf(ch)>=0)pr=clamp(pr+.12,0,1);
+ const sd=(Math.random()*1e9)|0;
+ const op=['c',cur.col,cur.row,ch,rr((R()-.5)*1.9*w),rr((R()-.5)*2.4*w),rr((R()-.5)*.07*w,3),rr(pr),rr((R()-.5)*.8*w),S.ribbon,rr(ink,3),sd];
+ cur.ops.push(op);cur.n=cur.ops.length;drawOp(layers.ink.getContext('2d'),op,SC,cur.type);
+ ink=Math.max(0,ink-.0007*S.drain/100*(.8+.4*pr));
+ cur.col++;
+ levers.push({i:li,t0:now});ribJump=now;spool+=.25;
+ sndKey(.6+pr*.5);
+ lastTyped=(lastTyped+ch).slice(-3);
+ if(/^(sos|сос)$/i.test(lastTyped))morse();
+ bellCheck();afterChange();return true;
+}
+function bellCheck(){
+ if(cur.col===COLS-S.bell){ringBell();setMsg('Звонок: до края листа '+S.bell+' знаков.');}
+ if(cur.col>=COLS)setMsg('Край листа: верни каретку (Enter).',true);
+}
+function ringBell(){bellT=performance.now();sndBell();kick();}
+function morse(){const p=[0,.28,.56,1,1.5,2,2.55,2.83,3.11];if(!snd())return;p.forEach((d,i)=>{setTimeout(()=>{if(AC&&S.sound){const t=AC.currentTime;[2093,3136].forEach(f=>tone(t,f,i>=3&&i<6?.55:.18,.12,'sine'));}bellT=performance.now();kick();},d*320);});setMsg('Морзянка: SOS принят.');}
+function lockMsg(){setMsg('Каретка упёрлась в край. Верни её рычагом (Enter).',true);}
+function doReturn(silent){
+ const now=performance.now();
+ if(cur.row>=ROWS-1&&!silent){ejectSheet(true);return;}
+ if(cur.row>=ROWS-1){ejectSheet(true);return;}
+ cur.row++;cur.col=0;colRate=9;retAnim=now;sndReturn();afterChange();
+}
+function doBack(){
+ if(cur.col<=0){sndDull();return;}
+ cur.col--;
+ if(S.corr){
+  const q=Math.random;const op=['w',cur.col,cur.row,(q()*1e9)|0,rr((q()-.5)*1.6),rr((q()-.5)*1.6)];cur.ops.push(op);cur.n=cur.ops.length;drawOp(layers.ink.getContext('2d'),op,SC,cur.type);sndCorr();setMsg('Замазано корректором.');
+ }else{sndSpace();}
+ colRate=40;afterChange();
+}
+function doOver(){
+ if(cur.col<=0){sndDull();return;}
+ const x=S.lay==='ru'?'х':'x';
+ cur.col--;const ok=typeChar(x,{noAuto:true});if(!ok)cur.col++;
+}
+function afterChange(){kick();updateUI();scheduleSave();}
+function ejectSheet(auto){
+ const now=performance.now();
+ if(!cur.ops.length&&!auto){setMsg('Лист пока пустой.');return;}
+ const old={type:cur.type,ops:cur.ops,n:cur.ops.length};
+ if(old.ops.length){old.thumb=makeThumb(old);stack.push(old);sheetsDone++;if(stack.length>8)stack.shift();}
+ ej={t0:now,old:layers,oldCol:cur.col,oldRow:cur.row};
+ cur={type:S.paper,ops:[],row:startRow(S.paper),col:0,n:0};
+ layers=newLayers(cur.type);colF=0;rowF=cur.row;colRate=40;
+ sndReturn();setTimeout(sndRibbon,260);
+ renderStack();afterChange();
+}
+function newRibbon(){ink=1;sndRibbon();setMsg('Лента заменена.');updateUI();scheduleSave();}
+function setPaper(id){
+ S.paper=id;
+ if(!cur.ops.length){cur.type=id;cur.row=startRow(id);rowF=cur.row;layers=newLayers(id);setMsg('Вставлен лист: '+paperOf(id).n.toLowerCase()+'.');}
+ else{setMsg('Этот лист уже начат. Новый будет: '+paperOf(id).n.toLowerCase()+'. Нажмите «Вынуть лист».');}
+ updateUI();kick();scheduleSave();
+}
+
+// ---------- рисование каретки ----------
+const carr=$('carr'),cx2=carr.getContext('2d'),bsk=$('basket'),bx=bsk.getContext('2d');
+let CWd=900,CHt=260,BH=130,dpr=1,Z=1;
+function fit(){
+ const m=$('machine');const w=Math.max(280,m.clientWidth-(window.innerWidth<=980?24:40));
+ dpr=Math.min(window.devicePixelRatio||1,2);
+ CWd=w;CHt=Math.round(clamp(window.innerHeight*.34,200,330));if(window.innerWidth<=700)CHt=Math.round(clamp(w*.62,190,260));
+ BH=Math.round(clamp(window.innerHeight*.15,92,150));if(window.innerWidth<=700)BH=84;
+ for(const [c,h] of [[carr,CHt],[bsk,BH]]){c.style.height=h+'px';c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);}
+ Z=clamp((w-52)/(COLS*CW*.94),.42,1.12);
+ renderStack();kick();
+}
+function drawSheetAt(g,L,cF,rF,offY,wx0,wy0,ww,wh,ppx,plY){
+ const uc=MX+(cF+.5)*CW,vb=MY+rF*LH+LH*.8;
+ const dx0=ppx-uc*Z,dy0=plY-vb*Z+offY;
+ g.drawImage(L.paper,0,0,L.paper.width,L.paper.height,dx0,dy0,SW*Z,SH*Z);
+ g.drawImage(L.ink,0,0,L.ink.width,L.ink.height,dx0,dy0,SW*Z,SH*Z);
+ g.strokeStyle='rgba(0,0,0,.28)';g.lineWidth=1;g.strokeRect(dx0,dy0,SW*Z,SH*Z);
+}
+function drawCarriage(now){
+ const g=cx2,W=CWd,H=CHt;g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+ // рельс каретки
+ let gr=g.createLinearGradient(0,0,0,40);gr.addColorStop(0,'#f2f5f4');gr.addColorStop(.5,'#b9c1be');gr.addColorStop(1,'#7c8681');
+ g.fillStyle=gr;g.beginPath();g.roundRect(0,0,W,40,[8,8,0,0]);g.fill();
+ g.fillStyle='rgba(0,0,0,.35)';g.fillRect(0,39,W,2);
+ const wx0=26,wx1=W-26,wy0=46,wy1=H-6,ww=wx1-wx0,wh=wy1-wy0,ppx=(wx0+wx1)/2,plY=wy0+wh*.66;
+ // линейка
+ g.save();g.beginPath();g.rect(0,0,W,40);g.clip();
+ g.font='700 11px Consolas,monospace';g.textAlign='center';g.fillStyle='#1c2a23';g.strokeStyle='#1c2a23';g.lineWidth=1;
+ for(let c=0;c<=COLS;c++){const x=ppx+(c-colF-.5)*CW*Z;if(x<-20||x>W+20)continue;const mj=c%10===0,m5=c%5===0;g.beginPath();g.moveTo(x+.5,40);g.lineTo(x+.5,40-(mj?15:m5?11:6));g.stroke();if(mj&&c<COLS)g.fillText(c,x,14);}
+ const sx=ppx+(COLS-S.bell-colF-.5)*CW*Z;g.fillStyle='#b4281d';g.fillRect(sx-2,19,5,11);
+ const ex=ppx+(COLS-colF-.5)*CW*Z;g.fillStyle='#1c2a23';g.fillRect(ex-2,16,5,22);
+ g.restore();
+ // колокольчик
+ {const bxp=W-44,byp=22;const age=(now-bellT)/1000;const sh=age<1.4?Math.sin(age*60)*Math.exp(-age*3.2)*.45:0;g.save();g.translate(bxp,byp+6);g.rotate(sh);
+  const bg=g.createRadialGradient(-3,-6,1,0,0,16);bg.addColorStop(0,'#fff0a8');bg.addColorStop(1,'#a8861f');g.fillStyle=bg;g.beginPath();g.arc(0,2,13,Math.PI,0);g.lineTo(15,8);g.lineTo(-15,8);g.closePath();g.fill();g.strokeStyle='#5a4510';g.lineWidth=1;g.stroke();g.fillStyle='#4a3a0c';g.beginPath();g.arc(0,10,3,0,7);g.fill();g.restore();}
+ // окно листа
+ g.fillStyle='#14251d';g.fillRect(wx0,wy0,ww,wh);
+ g.save();g.beginPath();g.rect(wx0,wy0,ww,wh);g.clip();
+ let offY=0,L=layers,showNew=true;
+ if(ej){const p=(now-ej.t0)/760;if(p>=1){ej=null;}else if(p<.5){L=ej.old;offY=-ease(p*2)*(wh+40);drawSheetAt(g,L,ej.oldCol,ej.oldRow,offY,wx0,wy0,ww,wh,ppx,plY);showNew=false;}else{offY=(1-ease((p-.5)*2))*(wh+60);}}
+ if(showNew)drawSheetAt(g,layers,colF,rowF,offY,wx0,wy0,ww,wh,ppx,plY);
+ // изгиб валика: затемнение сверху и снизу
+ let sg=g.createLinearGradient(0,wy0,0,plY-LH*Z*3);sg.addColorStop(0,'rgba(18,12,4,.62)');sg.addColorStop(1,'rgba(18,12,4,0)');g.fillStyle=sg;g.fillRect(wx0,wy0,ww,plY-LH*Z*3-wy0);
+ sg=g.createLinearGradient(0,plY+8,0,wy1);sg.addColorStop(0,'rgba(18,12,4,0)');sg.addColorStop(1,'rgba(18,12,4,.55)');g.fillStyle=sg;g.fillRect(wx0,plY+8,ww,wy1-plY-8);
+ // прижимная планка
+ const by=wy0+9;let rg=g.createLinearGradient(0,by-5,0,by+5);rg.addColorStop(0,'#eef1ef');rg.addColorStop(.5,'#9aa39e');rg.addColorStop(1,'#59615d');g.fillStyle=rg;g.fillRect(wx0,by-5,ww,10);
+ for(const f of [.2,.5,.8]){g.fillStyle='#2b312e';g.beginPath();g.arc(wx0+ww*f,by,4,0,7);g.fill();g.fillStyle='#d6dbd8';g.beginPath();g.arc(wx0+ww*f-1,by-1,2,0,7);g.fill();}
+ // направляющая ленты
+ const jt=clamp(1-(now-ribJump)/110,0,1),gy=plY-LH*Z*1.15+jt*7;
+ g.fillStyle='#8b948f';g.fillRect(ppx-24,gy-5,48,5);g.fillStyle='#cfd5d2';g.fillRect(ppx-24,gy-5,48,1.5);
+ const rc=S.ribbon?'#a3201c':'#1b1a18';g.fillStyle=rc;g.fillRect(ppx-20,gy,40,3);g.fillStyle=S.ribbon?'#1b1a18':'#a3201c';g.fillRect(ppx-20,gy+3,40,2);
+ g.fillStyle='#8b948f';g.fillRect(ppx-24,gy,3,8);g.fillRect(ppx+21,gy,3,8);
+ // указатель строки
+ g.fillStyle='#b4281d';g.beginPath();g.moveTo(ppx,plY+6);g.lineTo(ppx-6,plY+16);g.lineTo(ppx+6,plY+16);g.closePath();g.fill();
+ g.restore();
+ // рамка окна
+ g.strokeStyle='#0c1913';g.lineWidth=3;g.strokeRect(wx0-1.5,wy0-1.5,ww+3,wh+3);g.strokeStyle='rgba(255,255,255,.25)';g.lineWidth=1;g.strokeRect(wx0-4.5,wy0-4.5,ww+9,wh+9);
+ // ручки валика
+ for(const s of [-1,1]){const kx=s<0?13:W-13,ky=wy0+wh*.5;g.save();g.translate(kx,ky);g.rotate(knob);const kg=g.createRadialGradient(-2,-3,1,0,0,13);kg.addColorStop(0,'#2b2f2d');kg.addColorStop(1,'#050807');g.fillStyle=kg;g.beginPath();g.arc(0,0,12.5,0,7);g.fill();g.strokeStyle='#59615d';g.lineWidth=1.4;for(let i=0;i<10;i++){const a=i*.628;g.beginPath();g.moveTo(Math.cos(a)*8,Math.sin(a)*8);g.lineTo(Math.cos(a)*12,Math.sin(a)*12);g.stroke();}g.restore();}
+ // рычаг возврата
+ {const age=(now-leverT)/430;let p=0;if(age>=0&&age<1)p=age<.35?ease(age/.35):1-ease((age-.35)/.65);const th=3.45+p*1.5,L1=50,px=70,py=42;const tx=px+Math.cos(th)*L1,ty=py+Math.sin(th)*L1;
+  g.lineCap='round';g.strokeStyle='#2a302d';g.lineWidth=7;g.beginPath();g.moveTo(px,py);g.lineTo(tx,ty);g.stroke();g.strokeStyle='#cdd3d0';g.lineWidth=4;g.beginPath();g.moveTo(px,py);g.lineTo(tx,ty);g.stroke();
+  const bg=g.createRadialGradient(tx-2,ty-2,1,tx,ty,9);bg.addColorStop(0,'#44494a');bg.addColorStop(1,'#050807');g.fillStyle=bg;g.beginPath();g.arc(tx,ty,8,0,7);g.fill();g.fillStyle='#8b948f';g.beginPath();g.arc(px,py,6,0,7);g.fill();g.lineCap='butt';}
+}
+let leverT=-9999;
+function drawBasket(now){
+ const g=bx,W=CWd,H=BH;g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+ const ppx=W/2;
+ let bg=g.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#10241b');bg.addColorStop(1,'#1d3f31');g.fillStyle=bg;g.fillRect(0,0,W,H);
+ // сегмент рычагов
+ g.strokeStyle='#59615d';g.lineWidth=5;g.beginPath();g.ellipse(ppx,H+H*.55,W*.43,H*.9,0,Math.PI*1.1,Math.PI*1.9);g.stroke();
+ // катушки с лентой
+ const sp=Math.min(H*.34,32);
+ for(const s of [-1,1]){const x=ppx+s*Math.min(W*.4,330),y=sp+7;const rad=sp*(.42+.5*ink);
+  g.fillStyle='#0c1913';g.beginPath();g.arc(x,y,sp,0,7);g.fill();g.strokeStyle='#d9be6b';g.lineWidth=2;g.stroke();
+  g.fillStyle=S.ribbon?'#7a1d19':'#25231f';g.beginPath();g.arc(x,y,rad,0,7);g.fill();
+  g.strokeStyle='#8b948f';g.lineWidth=2;for(let i=0;i<3;i++){const a=spool*s+i*2.094;g.beginPath();g.moveTo(x,y);g.lineTo(x+Math.cos(a)*sp*.4,y+Math.sin(a)*sp*.4);g.stroke();}
+  g.strokeStyle=S.ribbon?'#a3201c':'#2b2924';g.lineWidth=3;g.beginPath();g.moveTo(x-s*rad*.6,y+rad*.8);g.lineTo(ppx+s*26,3);g.stroke();}
+ // рычаги литер
+ const act={};
+ levers=levers.filter(l=>now-l.t0<200);
+ for(const l of levers){const t=now-l.t0;act[l.i]=Math.max(act[l.i]||0,t<65?ease(t/65):1-ease((t-65)/135));}
+ if(jam&&jam.until>now){act[jam.a]=.86;act[jam.b]=.9;}
+ const order=[];for(let i=0;i<NL;i++)order.push(i);
+ order.sort((a,b)=>(act[a]||0)-(act[b]||0));
+ const sx=ppx,sy=4;
+ for(const i of order){
+  const t=(i+.5)/NL,px=ppx+(t-.5)*W*.84,py=H-3-Math.sin(t*Math.PI)*H*.1;
+  const rx=ppx+(t-.5)*W*.36,ry=H*.5+Math.abs(t-.5)*H*.38;
+  const f=act[i]||0;let tx=rx+(sx-rx)*f,ty=ry+(sy-ry)*f;
+  if(jam&&jam.until>now&&(i===jam.a||i===jam.b)){tx+=Math.sin(now*.09+i)*1.6;}
+  const cxp=px+(tx-px)*.25,cyp=py-(py-ty)*.85;
+  g.strokeStyle=f>0?'#f2f5f4':'#a9b2ae';g.lineWidth=f>0?2.6:2;g.beginPath();g.moveTo(px,py);g.quadraticCurveTo(cxp,cyp,tx,ty);g.stroke();
+  const ang=Math.atan2(ty-cyp,tx-cxp);g.save();g.translate(tx,ty);g.rotate(ang+Math.PI/2);g.fillStyle=f>0?'#fff':'#c9d0cd';g.fillRect(-3.5,-9,7,10);g.fillStyle='#40504a';g.fillRect(-2,-8,4,3);g.restore();
+ }
+}
+let raf=0,lastNow=0;
+function anim(now){return levers.length>0||(jam&&jam.until>now)||Math.abs(colF-cur.col)>.004||Math.abs(rowF-cur.row)>.004||ej||(now-bellT<1500)||(now-leverT<450)||(now-ribJump<130);}
+function kick(){if(!raf&&!document.hidden)raf=requestAnimationFrame(loop);}
+function loop(now){
+ raf=0;if(document.hidden)return;
+ const dt=Math.min(60,now-(lastNow||now));lastNow=now;
+ colF+=(cur.col-colF)*(1-Math.exp(-dt/1000*colRate));
+ rowF+=(cur.row-rowF)*(1-Math.exp(-dt/1000*18));
+ if(Math.abs(colF-cur.col)<.004)colF=cur.col;if(Math.abs(rowF-cur.row)<.004)rowF=cur.row;
+ knob=rowF*1.25;
+ if(retAnim&&now-retAnim<30)leverT=retAnim;
+ if(jam&&jam.until<=now)jam=null;
+ drawCarriage(now);drawBasket(now);
+ if(anim(now)){raf=requestAnimationFrame(loop);}else{lastNow=0;}
+}
+document.addEventListener('visibilitychange',()=>{lastNow=0;kick();});
+carr.addEventListener('pointerdown',e=>{const b=carr.getBoundingClientRect();const x=e.clientX-b.left,y=e.clientY-b.top;if(x<125&&y<66){audioInit();cancelGreet();doReturn();}});
+
+// ---------- интерфейс ----------
+function updateUI(){
+ $('pos').textContent='Строка '+(cur.row+1)+'/'+ROWS+'  ·  знак '+Math.min(cur.col+1,COLS)+'/'+COLS;
+ const pct=Math.round(ink*100);const m=$('meter');m.firstElementChild.style.width=pct+'%';m.classList.toggle('red',!!S.ribbon);m.classList.toggle('low',ink<.2);
+ $('inkTxt').textContent='Лента: '+pct+'%'+(ink<.001?' — пусто, остаются слепые оттиски':ink<.2?' — бледнеет, пора менять':'');
+ $('o_wob').textContent=S.wob+'%';$('o_drain').textContent=S.drain+'%';$('o_jam').textContent=S.jam?S.jam+' мс':'выкл';$('o_bell').textContent=S.bell;
+ const set=(id,on)=>$(id).setAttribute('aria-pressed',on?'true':'false');
+ set('tAuto',S.auto);set('tCorr',S.corr);set('tSound',S.sound);set('rBlack',!S.ribbon);set('rRed',!!S.ribbon);
+ $('tSound').textContent='Звук: '+(S.sound?'вкл':'выкл');$('tLay').textContent='Клавиши: '+(S.lay==='ru'?'Рус':'Lat');
+ $('tAuto').textContent='Рычаг сам: '+(S.auto?'да':'нет');$('tCorr').textContent='Корректор: '+(S.corr?'да':'нет');
+ document.querySelectorAll('#papers .chip').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===S.paper?'true':'false'));
+}
+function buildPapers(){
+ const w=$('papers');w.innerHTML='';
+ for(const p of PAPERS){const b=document.createElement('button');b.className='chip';b.dataset.p=p.id;b.innerHTML='<i class="sw" style="background:'+p.c+'"></i>'+p.n;b.addEventListener('click',()=>{setPaper(p.id);b.blur();});w.appendChild(b);}
+}
+function makeThumb(sh){
+ const L=renderSheet(sh,.2);const c=mk(SW*.2,SH*.2);const g=c.getContext('2d');g.drawImage(L.paper,0,0);g.drawImage(L.ink,0,0);return c;
+}
+function renderStack(){
+ const w=$('stack');w.innerHTML='';
+ const n=stack.length;
+ $('stackcnt').textContent=n?('Готовых листов в стопке: '+n+(sheetsDone>n?' (всего напечатано '+sheetsDone+')':'')):'Стопка пуста.';
+ if(!n){const d=document.createElement('div');d.className='none';d.textContent='Здесь будут лежать вынутые листы';w.appendChild(d);return;}
+ const show=stack.slice(-5);const tw=Math.min(124,w.clientWidth*.5||110),th=tw*SH/SW;
+ show.forEach((sh,i)=>{
+  if(!sh.thumb)sh.thumb=makeThumb(sh);
+  const c=mk(sh.thumb.width,sh.thumb.height);c.getContext('2d').drawImage(sh.thumb,0,0);
+  c.style.width=tw+'px';c.style.height=th+'px';const q=rng(i*31+sheetsDone);
+  c.style.left=(8+i*((w.clientWidth-tw-20)/Math.max(4,show.length)))+'px';c.style.bottom=Math.round(q()*8)+'px';c.style.transform='rotate('+((q()-.5)*7).toFixed(1)+'deg)';c.style.zIndex=i;
+  c.title='Открыть лист';c.addEventListener('click',()=>openViewer(sh));w.appendChild(c);
+ });
+}
+let vSheet=null;
+function openViewer(sh){
+ vSheet=sh;const L=renderSheet(sh,1);const v=$('vcv');v.width=L.paper.width;v.height=L.paper.height;const g=v.getContext('2d');g.drawImage(L.paper,0,0);g.drawImage(L.ink,0,0);
+ v.style.height=Math.min(window.innerHeight-100,v.height)+'px';v.style.width='auto';$('viewer').classList.add('on');
+}
+function closeViewer(){$('viewer').classList.remove('on');vSheet=null;}
+
+// ---------- экспорт ----------
+function dl(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},600);}
+function scanCanvas(sh,L){
+ const pw=SW*1.5,ph=SH*1.5;const W=Math.round(pw*1.1),H=Math.round(ph*1.06);
+ const c=mk(W,H),g=c.getContext('2d');const q=rng(sh.ops.length*7+3);
+ const bg=g.createLinearGradient(0,0,W,H);bg.addColorStop(0,'#dcdcd8');bg.addColorStop(1,'#c9c9c4');g.fillStyle=bg;g.fillRect(0,0,W,H);
+ const ang=(q()<.5?-1:1)*(.006+q()*.008);
+ g.save();g.translate(W/2+(q()-.5)*14,H/2+(q()-.5)*10);g.rotate(ang);
+ g.shadowColor='rgba(0,0,0,.35)';g.shadowBlur=26;g.shadowOffsetY=6;g.fillStyle='#fff';g.fillRect(-pw/2,-ph/2,pw,ph);g.shadowBlur=0;g.shadowOffsetY=0;
+ g.drawImage(L.paper,-pw/2,-ph/2,pw,ph);g.drawImage(L.ink,-pw/2,-ph/2,pw,ph);
+ const sg=g.createLinearGradient(-pw/2,0,pw/2,0);sg.addColorStop(0,'rgba(0,0,0,.07)');sg.addColorStop(.12,'rgba(0,0,0,0)');sg.addColorStop(1,'rgba(0,0,0,.05)');g.fillStyle=sg;g.fillRect(-pw/2,-ph/2,pw,ph);
+ g.restore();
+ for(let i=0;i<2200;i++){g.fillStyle='rgba(0,0,0,'+(.02+q()*.05).toFixed(3)+')';g.fillRect(q()*W,q()*H,1,1);}
+ for(let y=0;y<H;y+=3){g.fillStyle='rgba(255,255,255,.025)';g.fillRect(0,y,W,1);}
+ return c;
+}
+function exportPng(){
+ const sh=vSheet||cur;const L=vSheet?renderSheet(vSheet,SC):layers;
+ const c=scanCanvas(sh,L);
+ c.toBlob(b=>{if(b)dl('mashinka-list-'+(sheetsDone+1)+'.png',b);},'image/png');
+ return c.toDataURL('image/png').length;
+}
+function exportTxt(){const t=sheetText(vSheet||cur);dl('mashinka-list.txt',new Blob([t||'(пусто)'],{type:'text/plain;charset=utf-8'}));return t;}
+
+// ---------- сохранение ----------
+let saveT=0;
+function scheduleSave(){clearTimeout(saveT);saveT=setTimeout(save,700);}
+function save(){
+ const pack=n=>({type:n.type,ops:n.ops,n:n.ops.length});
+ let st=stack.slice(-8).map(pack);
+ for(let k=0;k<6;k++){
+  try{localStorage.setItem(KEY,JSON.stringify({S:S,ink:ink,cur:{type:cur.type,ops:cur.ops,row:cur.row,col:cur.col},stack:st,done:sheetsDone}));return;}catch(e){st=st.slice(1);}
+ }
+}
+function load(){try{return JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){return null;}}
+window.addEventListener('pagehide',save);
+
+// ---------- приветствие ----------
+let greetT=0,greeting=false;
+const GREET='Добрый день.\nМашинка заправлена, лента свежая.\nПечатайте: стереть нельзя, только забить.\n';
+function startGreet(){
+ greeting=true;let i=0;
+ const nextC=()=>{
+  if(!greeting)return;
+  if(i>=GREET.length){greeting=false;return;}
+  const ch=GREET[i++];let d=70+Math.random()*70;
+  if(ch==='\n'){doReturn();d=420;}else typeChar(ch,{auto:true});
+  if(ch===' ')d+=30;
+  greetT=setTimeout(nextC,d);
+ };
+ greetT=setTimeout(nextC,450);
+}
+function cancelGreet(){if(greeting){greeting=false;clearTimeout(greetT);}}
+
+// ---------- клавиатура ----------
+function closeHelp(){$('help').classList.remove('on');}
+window.addEventListener('keydown',e=>{
+ if($('viewer').classList.contains('on')){if(e.key==='Escape')closeViewer();else if(e.key==='F8'){e.preventDefault();exportPng();}return;}
+ if($('help').classList.contains('on')){if(e.key==='Escape'||e.key==='F1'){e.preventDefault();closeHelp();}return;}
+ if(e.ctrlKey||e.metaKey){if(e.key==='Enter'){e.preventDefault();ejectSheet(false);}return;}
+ if(e.altKey&&!(e.getModifierState&&e.getModifierState('AltGraph')))return;
+ const k=e.key;
+ if(k==='Tab'||k==='Escape')return;
+ if(/^F\d+$/.test(k)){
+  if(k==='F1'){e.preventDefault();$('help').classList.add('on');}
+  else if(k==='F2'){e.preventDefault();setRibbon(S.ribbon?0:1);}
+  else if(k==='F3'){e.preventDefault();toggleCorr();}
+  else if(k==='F4'){e.preventDefault();audioInit();newRibbon();}
+  else if(k==='F7'){e.preventDefault();openViewer(cur.ops.length||!stack.length?{type:cur.type,ops:cur.ops}:stack[stack.length-1]);}
+  else if(k==='F8'){e.preventDefault();exportPng();}
+  return;
+ }
+ if(e.target&&e.target.type==='range'&&/^(Arrow|Home|End|Page)/.test(k))return;
+ if(k==='Shift'){shiftHeld=true;refreshCaps();flash('Shift');return;}
+ if(k==='Control'||k==='Alt'||k==='Meta'||k==='CapsLock'||k==='AltGraph'||k==='ContextMenu'||k==='Dead'||k==='Process'||k==='Unidentified')return;
+ e.preventDefault();
+ audioInit();cancelGreet();
+ if(k==='Enter'){if(!e.repeat){doReturn();flash('Enter');}return;}
+ if(k==='Backspace'){doBack();flash('Backspace');return;}
+ if(k==='Delete'){doOver();flash('Delete');return;}
+ if(/^Arrow|^Home$|^End$|^Page/.test(k))return;
+ if(k===' '){typeChar(' ');flash('Space');return;}
+ if(k.length===1||(k.length===2&&k.codePointAt(0)>0xffff===false&&false)){
+  const cd=/[а-яё]/i.test(k)?'ru':/[a-z]/i.test(k)?'en':null;
+  if(cd&&cd!==S.lay){S.lay=cd;refreshCaps();updateUI();}
+  if(typeChar(k))flash(e.code);else flash(e.code);
+ }
+});
+window.addEventListener('keyup',e=>{if(e.key==='Shift'){shiftHeld=false;refreshCaps();}});
+window.addEventListener('blur',()=>{shiftHeld=false;refreshCaps();});
+
+function setRibbon(v){S.ribbon=v;sndRibbon();setMsg('Лента: '+(v?'красная':'чёрная')+'.');updateUI();kick();scheduleSave();}
+function toggleCorr(){S.corr=!S.corr;setMsg('Корректор '+(S.corr?'включён: Backspace замажет знак.':'выключен: Backspace только двигает каретку.'));updateUI();scheduleSave();}
+
+// привязки панели
+function bindRange(id,key){const el=$(id);el.addEventListener('input',()=>{S[key]=+el.value;updateUI();scheduleSave();});el.addEventListener('change',()=>el.blur());}
+bindRange('wob','wob');bindRange('drain','drain');bindRange('jam','jam');bindRange('bell','bell');
+$('rBlack').addEventListener('click',e=>{setRibbon(0);e.currentTarget.blur();});
+$('rRed').addEventListener('click',e=>{setRibbon(1);e.currentTarget.blur();});
+$('bRibbon').addEventListener('click',e=>{audioInit();newRibbon();e.currentTarget.blur();});
+$('tAuto').addEventListener('click',e=>{S.auto=!S.auto;setMsg(S.auto?'Рычаг сам: в конце строки каретка вернётся сама.':'Рычаг сам выключен: в конце строки каретку нужно вернуть вручную.');updateUI();scheduleSave();e.currentTarget.blur();});
+$('tCorr').addEventListener('click',e=>{toggleCorr();e.currentTarget.blur();});
+$('tSound').addEventListener('click',e=>{audioInit();S.sound=!S.sound;if(S.sound)sndBell();updateUI();scheduleSave();e.currentTarget.blur();});
+$('tLay').addEventListener('click',e=>{S.lay=S.lay==='ru'?'en':'ru';refreshCaps();updateUI();scheduleSave();e.currentTarget.blur();});
+$('bEject').addEventListener('click',e=>{audioInit();ejectSheet(false);e.currentTarget.blur();});
+$('bView').addEventListener('click',e=>{openViewer(cur.ops.length||!stack.length?{type:cur.type,ops:cur.ops}:stack[stack.length-1]);e.currentTarget.blur();});
+$('bPng').addEventListener('click',e=>{exportPng();e.currentTarget.blur();});
+$('bTxt').addEventListener('click',e=>{exportTxt();e.currentTarget.blur();});
+$('bHelp').addEventListener('click',e=>{$('help').classList.add('on');e.currentTarget.blur();});
+$('hClose').addEventListener('click',closeHelp);
+$('help').addEventListener('click',e=>{if(e.target.id==='help')closeHelp();});
+$('vClose').addEventListener('click',closeViewer);
+$('vPng').addEventListener('click',exportPng);
+$('viewer').addEventListener('click',e=>{if(e.target.id==='viewer')closeViewer();});
+$('bReset').addEventListener('click',e=>{
+ e.currentTarget.blur();cancelGreet();
+ try{localStorage.removeItem(KEY);}catch(er){}
+ S=Object.assign({},DEF);ink=1;stack=[];sheetsDone=0;cur={type:'white',ops:[],row:0,col:0,n:0};layers=newLayers('white');colF=0;rowF=0;
+ for(const id of ['wob','drain','jam','bell'])$(id).value=S[id];
+ refreshCaps();renderStack();updateUI();kick();setMsg('Всё сброшено: чистый лист, новая лента.');startGreet();
+});
+new ResizeObserver(()=>fit()).observe($('machine'));
+
+// ---------- старт ----------
+buildPapers();buildKb();
+const sv=load();
+let restored=false;
+if(sv&&sv.S){
+ S=Object.assign({},DEF,sv.S);if(typeof sv.ink==='number')ink=sv.ink;sheetsDone=sv.done||0;
+ if(sv.cur&&sv.cur.ops){cur={type:sv.cur.type||'white',ops:sv.cur.ops,row:sv.cur.row||0,col:sv.cur.col||0,n:sv.cur.ops.length};}
+ if(Array.isArray(sv.stack))stack=sv.stack.map(s=>({type:s.type,ops:s.ops,n:s.ops.length}));
+ restored=cur.ops.length>0||stack.length>0;
+}
+for(const id of ['wob','drain','jam','bell'])$(id).value=S[id];
+layers=newLayers(cur.type);{const g=layers.ink.getContext('2d');for(const op of cur.ops)drawOp(g,op,SC,cur.type);}
+colF=cur.col;rowF=cur.row;
+refreshCaps();fit();updateUI();
+renderStack();
+if(!restored){if(!cur.ops.length)setTimeout(startGreet,350);}
+kick();
+window.__app={get S(){return S;},get cur(){return cur;},get stack(){return stack;},get ink(){return ink;},set ink(v){ink=v;updateUI();},
+ typeChar,doReturn,doBack,doOver,ejectSheet,sheetText:()=>sheetText(cur),sheetTextOf:sheetText,exportPng,exportTxt,setPaper,newRibbon,setRibbon,
+ get jam(){return jam;},get greeting(){return greeting;},cancelGreet,openViewer,closeViewer,get colF(){return colF;},
+ sd:()=>document.documentElement.scrollWidth};
+})();
+</script>
+</body>
+</html>

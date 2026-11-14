@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Энигма — шифровальная машина</title>
+<style>
+:root{
+  --desk:#1d150e; --bak:#0e0d0c; --bak2:#1a1815; --brass:#c9a24d; --brass-d:#7d6128; --brass-l:#ecd18a;
+  --cream:#eadfc4; --muted:#b3a688; --paper:#e8dec4; --ink:#2a2418; --lamp:#ffd35e; --red:#e0735a; --green:#9bc08a;
+  --k:46px;
+  --f-label:"Bahnschrift","Franklin Gothic Medium","Segoe UI",sans-serif;
+  --f-serif:Georgia,"Palatino Linotype",serif;
+  --f-mono:Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{background:var(--desk)}
+body{margin:0;min-height:100vh;color:var(--cream);font-family:var(--f-label);font-size:15px;line-height:1.35;
+  background:radial-gradient(ellipse at 30% 0%,#3a2a1b 0,#241910 45%,#150f09 100%);overflow-x:hidden}
+a{color:var(--brass-l)}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--brass-l);outline-offset:2px}
+.back{position:absolute;left:12px;top:8px;font-size:13px;color:var(--brass-l);text-decoration:none;z-index:5;padding:4px 2px}
+.back:hover{text-decoration:underline}
+.bar{display:flex;align-items:center;gap:14px;padding:6px 18px 6px 18px;margin-top:26px;flex-wrap:wrap}
+.plate{font-family:var(--f-serif);font-weight:bold;letter-spacing:.32em;font-size:22px;color:#2a1f08;padding:5px 16px 5px 20px;border-radius:3px;
+  background:linear-gradient(180deg,#e6c778,#b48a35 55%,#d9b562);box-shadow:inset 0 0 0 1px #8a6a25,0 2px 6px #0008}
+.sub{color:var(--muted);font-size:14px}
+.sp{flex:1}
+.btn{min-height:36px;min-width:36px;padding:4px 12px;border-radius:4px;border:1px solid #6b5522;background:linear-gradient(#2c261c,#1b1712);color:var(--cream);font-size:14px}
+.btn:hover{border-color:var(--brass);background:linear-gradient(#383022,#221c14)}
+.btn:active{transform:translateY(1px)}
+.btn[aria-pressed="true"]{border-color:var(--brass);box-shadow:inset 0 0 0 1px var(--brass-d);color:var(--brass-l)}
+.btn.pri{background:linear-gradient(#c9a24d,#9c7a2e);color:#201703;border-color:#e2c37a;font-weight:bold}
+.btn.pri:hover{background:linear-gradient(#dcb85e,#aa8434)}
+.grid{display:grid;grid-template-columns:minmax(540px,610px) minmax(0,1fr);gap:18px;padding:6px 18px 30px;align-items:start}
+.machine{position:relative;border-radius:10px;padding:14px 18px 16px;
+  background:var(--bak) var(--tex,none);box-shadow:inset 0 0 0 2px #2a2621,inset 0 0 0 6px #0b0a09,inset 0 0 0 7px #3a342b,0 12px 30px #000a}
+.mhead{display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);margin:0 0 8px}
+.windows{display:flex;justify-content:center;gap:22px;margin:2px 0 14px}
+.win{display:flex;flex-direction:column;align-items:center;gap:3px}
+.wbtn{width:52px;height:36px;border-radius:4px;border:1px solid #5d4a1f;background:linear-gradient(#26211a,#16130f);display:grid;place-items:center;padding:0}
+.wbtn:hover{border-color:var(--brass)}
+.wbtn svg{width:14px;height:10px;fill:var(--brass)}
+.wframe{width:52px;height:70px;border-radius:5px;background:#050505;overflow:hidden;position:relative;
+  box-shadow:0 0 0 3px #a98534,0 0 0 5px #3a2c0e,inset 0 0 12px #000;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:ns-resize}
+.wcol{display:flex;flex-direction:column;align-items:center;line-height:1}
+.wcol span{display:block;height:22px;line-height:22px;font-family:var(--f-label);font-size:15px;color:#c2b697}
+.wcol span.cur{height:26px;line-height:26px;font-size:30px;font-weight:bold;color:#f4ead0}
+.wframe:after{content:"";position:absolute;inset:0;background:linear-gradient(#000c,#0000 28%,#0000 72%,#000c);pointer-events:none}
+.wname{font-size:12px;color:var(--muted);letter-spacing:.06em;min-height:16px}
+.wname.notch{color:var(--lamp)}
+.lamps,.keys,.plugs{display:flex;flex-direction:column;align-items:center;gap:7px}
+.row{display:flex;gap:8px;justify-content:center}
+.lamps{padding:12px 0 12px;margin:0 -4px 12px;border-top:1px solid #2c271f;border-bottom:1px solid #2c271f;background:linear-gradient(#0a0908,#12100e)}
+.lamp{width:var(--k);height:var(--k);border-radius:50%;display:grid;place-items:center;font-family:var(--f-label);font-size:calc(var(--k)*.4);color:#c4b894;
+  background:radial-gradient(circle at 50% 40%,#2a251d,#0b0a08 75%);box-shadow:0 0 0 2px #6d5521,0 0 0 4px #1b160a,inset 0 2px 5px #000;transition:all .45s ease-out;user-select:none}
+.lamp.on{transition:all .05s;color:#3a2a06;font-weight:bold;background:radial-gradient(circle at 50% 42%,#fff6c8,#ffd35e 55%,#d9962a);
+  box-shadow:0 0 0 2px #c9a24d,0 0 0 4px #1b160a,0 0 22px 8px #ffbf3a99}
+.key{width:var(--k);height:var(--k);border-radius:50%;border:0;padding:0;font-family:var(--f-label);font-size:calc(var(--k)*.4);color:var(--cream);touch-action:none;user-select:none;
+  background:radial-gradient(circle at 50% 35%,#3b362e,#14120f 70%);box-shadow:0 0 0 2px #b18f43,0 0 0 4px #251d0c,0 4px 5px 3px #000a,inset 0 2px 3px #fff2}
+.key.down{transform:translateY(3px);box-shadow:0 0 0 2px #e1c06a,0 0 0 4px #251d0c,0 1px 2px 1px #000a,inset 0 2px 6px #000;background:radial-gradient(circle at 50% 50%,#1d1a15,#0a0908 70%);color:var(--lamp)}
+.keys{gap:9px;margin-bottom:14px}
+.plugwrap{position:relative;border-top:1px solid #2c271f;padding-top:10px}
+.plugs{gap:0}
+.sock{width:40px;height:52px;border:0;padding:0;background:radial-gradient(circle at 50% 18px,#000 0 7px,#6d5521 8px 14px,#2a2110 15px 17px,#0000 18px);position:relative;color:var(--cream);font-size:12px}
+.sock span{position:absolute;left:5px;right:5px;bottom:3px;text-align:center;font-size:13px;font-weight:bold;color:var(--cream);line-height:16px;background:#0e0d0c;border-radius:3px}
+.sock:hover span{color:var(--brass-l)}
+.sock.sel span{color:var(--lamp);font-weight:bold}
+.sock.sel{background:radial-gradient(circle at 50% 18px,#000 0 7px,#ffd35e 8px 15px,#0000 17px)}
+.sock.used span{color:#fff}
+#cables{position:absolute;left:0;top:0;pointer-events:none;width:100%;height:100%;z-index:0}
+.plugs{position:relative;z-index:1}
+.pfoot{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-top:8px;gap:8px;flex-wrap:wrap}
+.right{display:flex;flex-direction:column;gap:14px;min-width:0}
+.lid{border-radius:10px;padding:10px 12px 10px;background:linear-gradient(#17130e,#0d0b09);box-shadow:inset 0 0 0 1px #4b3d1c,0 10px 26px #0009}
+.lid h2,.pan h2{margin:0;font-size:13px;font-weight:normal;letter-spacing:.14em;text-transform:uppercase;color:var(--brass)}
+.lidhead{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:4px}
+.lidhead small{color:var(--muted);font-size:13px}
+canvas#lid{width:100%;height:440px;display:block}
+.chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.chip{flex:1 1 56px;min-width:56px;border:1px solid #3a3020;border-radius:4px;padding:3px 4px 2px;text-align:center;background:#12100c;transition:all .12s}
+.chip i{display:block;font-style:normal;font-size:11px;color:var(--muted);white-space:nowrap}
+.chip b{display:block;font-size:19px;font-family:var(--f-label);color:#6d6451;font-weight:normal;line-height:1.1}
+.chip.on{border-color:var(--brass);background:#2a2110}
+.chip.on b{color:var(--lamp);font-weight:bold}
+.chip.on i{color:var(--cream)}
+.note{margin:6px 0 0;font-size:14px;color:var(--cream);min-height:20px}
+.pan{border-radius:10px;padding:12px 14px;background:linear-gradient(#1a1713,#110f0c);box-shadow:inset 0 0 0 1px #3c331f,0 8px 20px #0007}
+.pan .hd{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.pan .hd small{color:var(--muted);font-size:13px}
+.tape{background:var(--paper);color:var(--ink);border-radius:3px;padding:8px 12px;max-height:210px;min-height:84px;overflow-y:auto;font-family:var(--f-mono);font-size:17px;
+  box-shadow:inset 0 0 0 1px #b9a977,0 2px 6px #0008;background-image:repeating-linear-gradient(90deg,#0000 0 3px,#0000000a 3px 4px)}
+.tape .g{display:inline-block;margin:0 14px 6px 0;vertical-align:top;text-align:left}
+.tape .gi,.tape .go{display:block;letter-spacing:.14em;white-space:pre;min-height:22px}
+.tape .gi{border-bottom:1px solid #6b5f3f;color:#4a3f26;padding-bottom:1px}
+.tape .go{font-weight:bold;padding-top:1px}
+.tape b.last{background:#e4a93a;color:#1e1604;border-radius:2px}
+.tape .brk{display:block;width:100%;height:0;border-top:1px dashed #7a6c46;margin:4px 0 8px;position:relative}
+.tape .brk:after{content:"смена настроек";position:absolute;left:0;top:-9px;background:var(--paper);font:11px var(--f-label);color:#5a4d2c;padding:0 6px 0 0}
+.tape .empty{color:#6a5d3b;font-family:var(--f-label);font-size:15px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center}
+.stats{color:var(--muted);font-size:13px;margin-left:auto}
+.hint{margin:8px 0 0;font-size:14px;color:var(--cream)}
+.hint b{color:var(--brass-l)}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.card{border:1px solid #3c331f;border-radius:6px;padding:8px 10px;background:#0f0d0a}
+.card h3{margin:0 0 6px;font-size:13px;font-weight:normal;color:var(--brass);letter-spacing:.06em}
+.card label{display:block;font-size:12px;color:var(--muted);margin:6px 0 2px}
+select,.inp{width:100%;min-height:36px;border-radius:4px;border:1px solid #6b5522;background:#1b1712;color:var(--cream);padding:3px 8px}
+.stp{display:flex;align-items:center;gap:4px}
+.stp .v{flex:1;text-align:center;font-family:var(--f-label);font-size:17px;min-width:44px}
+.stp .btn{padding:0;width:36px}
+.seg{display:flex;gap:6px}
+.seg .btn{flex:1}
+.cinfo{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.3}
+.keyrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.keyrow .inp{flex:1 1 320px;min-width:0;text-overflow:ellipsis;font-family:var(--f-mono);font-size:15px;letter-spacing:.02em}
+.msg{min-height:20px;font-size:14px;margin-top:6px}
+.msg.err{color:#ff9f86}.msg.ok{color:var(--green)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.mini{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.mini .inp{flex:1 1 140px;width:auto}
+#toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,20px);background:#f0e2b8;color:#241b06;padding:9px 16px;border-radius:5px;font-size:15px;opacity:0;pointer-events:none;transition:all .25s;z-index:30;max-width:92vw;box-shadow:0 6px 20px #000a}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.modal{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:40;padding:14px}
+.modal.show{display:flex}
+.sheet{background:#17130e;border:1px solid var(--brass-d);border-radius:8px;max-width:620px;width:100%;max-height:90vh;overflow:auto;padding:18px 22px}
+.sheet h2{margin:0 0 10px;font-family:var(--f-serif);color:var(--brass-l);font-size:20px}
+.sheet dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:10px 0}
+.sheet dt{font-family:var(--f-mono);color:var(--brass-l)}
+.sheet dd{margin:0}
+.sheet p{margin:8px 0}
+@media (min-width:1101px) and (max-height:950px){:root{--k:40px}.keys{gap:7px;margin-bottom:10px}.lamps{padding:8px 0;margin-bottom:8px}.sock{height:46px}.pfoot{margin-top:2px}.machine{padding-top:10px}.windows{margin-bottom:8px}canvas#lid{height:400px}}
+@media (max-width:1100px){
+  .grid{grid-template-columns:minmax(0,1fr);max-width:680px;margin:0 auto}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .right{order:-0}
+}
+@media (max-width:700px){
+  :root{--k:clamp(36px,calc((100vw - 70px)/9.4),46px)}
+  .grid{padding:6px 8px 24px}
+  .machine{padding:10px 8px 12px}
+  .row{gap:3px}
+  .windows{gap:12px}
+  .row2{grid-template-columns:1fr}
+  canvas#lid{height:380px}
+  .bar{padding:6px 10px}
+  .plate{font-size:18px;letter-spacing:.2em}
+  .tape{font-size:15px}
+  .tape .g{margin-right:8px}
+}
+</style>
+</head>
+<body>
+<a class="back" href="../index.html">← Все приложения</a>
+<header class="bar">
+  <div class="plate">ENIGMA</div>
+  <div class="sub">M3 · роторы I–V · рефлекторы B и C</div>
+  <div class="sp"></div>
+  <button class="btn" id="bSpeed" title="Скорость показа тока (клавиша «,»)">Ток: быстро</button>
+  <button class="btn" id="bSound" aria-pressed="true" title="Звук клавиш (клавиша «.»)">Звук: вкл</button>
+  <button class="btn" id="bHelp" title="Справка (клавиша «?»)">Справка ?</button>
+  <button class="btn" id="bReset" title="Вернуть исторический пример">Сбросить</button>
+</header>
+<div class="grid">
+  <section class="machine" id="machine" aria-label="Шифровальная машина">
+    <div class="mhead"><span>Окна роторов</span><span id="mcount">0 букв</span></div>
+    <div class="windows" id="windows"></div>
+    <div class="mhead"><span>Лампы</span><span>QWERTZ, как в оригинале</span></div>
+    <div class="lamps" id="lamps"></div>
+    <div class="mhead"><span>Клавиши</span><span>печатайте или нажимайте мышью</span></div>
+    <div class="keys" id="keys"></div>
+    <div class="plugwrap" id="plugwrap">
+      <div class="mhead"><span>Штекерная панель</span><span id="pcount">0 из 10 пар</span></div>
+      <div class="plugs" id="plugs"></div>
+      <canvas id="cables"></canvas>
+      <div class="pfoot"><span>Нажмите два гнезда — провод соединит их. Нажмите занятое — провод снимется.</span><button class="btn" id="bClearPlugs">Снять все</button></div>
+    </div>
+  </section>
+  <div class="right">
+    <section class="lid" aria-label="Под крышкой">
+      <div class="lidhead"><h2>Под крышкой</h2><small>ток идёт справа налево, отражается и возвращается к лампе</small></div>
+      <canvas id="lid"></canvas>
+      <div class="chips" id="chips"></div>
+      <p class="note" id="stepnote" aria-live="polite"></p>
+    </section>
+    <section class="pan">
+      <div class="hd"><h2>Лента</h2><small>сверху — что вы напечатали, снизу — что загорелось</small></div>
+      <div class="tape" id="tape" aria-live="polite"></div>
+      <div class="tools">
+        <button class="btn" id="bCopyOut">Копировать результат</button>
+        <button class="btn" id="bCopyIn">Копировать ввод</button>
+        <button class="btn" id="bDownload">Скачать .txt</button>
+        <button class="btn" id="bRewind" title="Клавиша Enter">На начало</button>
+        <button class="btn" id="bBack" title="Клавиша Backspace">Стереть букву</button>
+        <button class="btn" id="bClearTape">Очистить ленту</button>
+        <span class="stats" id="stats"></span>
+      </div>
+      <div class="mini">
+        <input class="inp" id="paste" placeholder="Вставьте текст латиницей" aria-label="Текст для набора" autocomplete="off" spellcheck="false">
+        <button class="btn" id="bPaste">Напечатать</button>
+        <button class="btn" id="bRoundtrip" title="Прогнать результат через ту же машину с начальной позиции">Проверить: расшифровать обратно</button>
+      </div>
+      <p class="hint"><b>Машина латинская.</b> Она знает только буквы A–Z: русские буквы, цифры и пробелы не принимаются, и транслитерации здесь нет. Пишите латиницей, например <b>PRIVET</b> (в настоящей Энигме вместо пробела ставили X).</p>
+    </section>
+    <section class="pan">
+      <div class="hd"><h2>Настройки машины</h2><small>любое изменение начинает новое сообщение</small></div>
+      <div class="cards" id="cards"></div>
+    </section>
+    <section class="pan">
+      <div class="hd"><h2>Ключ дня</h2><small>все настройки — в одной короткой строке</small></div>
+      <div class="keyrow">
+        <input class="inp" id="keystr" aria-label="Строка ключа" spellcheck="false" autocomplete="off">
+        <button class="btn pri" id="bApply">Применить</button>
+        <button class="btn" id="bCopyKey">Копировать ключ</button>
+        <button class="btn" id="bCopyLink">Копировать ссылку</button>
+      </div>
+      <div class="msg" id="keymsg" role="status"></div>
+      <p class="hint" style="margin-top:2px">Порядок: рефлектор / роторы слева направо / кольца / стартовые окна / штекеры. Отправьте строку другу — он введёт её и расшифрует вашу ленту.</p>
+      <div class="mini">
+        <input class="inp" id="word" placeholder="Общее кодовое слово" aria-label="Кодовое слово" autocomplete="off" maxlength="40">
+        <button class="btn" id="bToday" title="Из слова и сегодняшней даты получается один и тот же ключ у вас и у друга">Ключ на сегодня</button>
+        <button class="btn" id="bRand">Случайный ключ</button>
+        <button class="btn" id="bDemo1">Пример: AAAAA→BDZGO</button>
+        <button class="btn" id="bDemo2">Пример: Барбаросса</button>
+      </div>
+    </section>
+  </div>
+</div>
+<div id="toast" role="status"></div>
+<div class="modal" id="help" role="dialog" aria-modal="true" aria-label="Справка">
+  <div class="sheet">
+    <h2>Как пользоваться</h2>
+    <p>Нажмите клавишу — ток пройдёт через штекеры, три ротора, рефлектор и вернётся другим путём к лампе. Ротор справа делает шаг перед каждой буквой, поэтому одна и та же буква шифруется по-разному. Если средний ротор стоит на зубце, он толкает левый и сам шагает ещё раз — это двойной шаг.</p>
+    <dl>
+      <dt>A–Z</dt><dd>напечатать букву (раскладка должна быть английской)</dd>
+      <dt>Backspace</dt><dd>стереть последнюю букву и вернуть роторы назад</dd>
+      <dt>Enter</dt><dd>вернуть роторы на начало сообщения</dd>
+      <dt>,</dt><dd>показ тока: быстро / медленно / сразу</dd>
+      <dt>.</dt><dd>звук вкл/выкл</dd>
+      <dt>?</dt><dd>эта справка</dd>
+      <dt>Esc</dt><dd>закрыть справку или отменить выбранное гнездо</dd>
+      <dt>колесо мыши</dt><dd>над окном ротора — повернуть его</dd>
+    </dl>
+    <p>Машина симметрична: если ввести шифртекст при тех же настройках и с той же стартовой позиции, получится исходный текст. Буква никогда не шифруется сама в себя — на этом изъяне и держался взлом.</p>
+    <button class="btn pri" id="bHelpClose">Понятно</button>
+  </div>
+</div>
+<script>
+/*CORE_START*/
+var ABC='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+var ROTORS={
+  I:{w:'EKMFLGDQVZNTOWYHXUSPAIBRCJ',n:'Q'},
+  II:{w:'AJDKSIRUXBLHWTMCQGZNPYFVOE',n:'E'},
+  III:{w:'BDFHJLCPRTXVZNYEIWGAKMUSQO',n:'V'},
+  IV:{w:'ESOVPZJAYQUIRHXLNFTGKDCMWB',n:'J'},
+  V:{w:'VZBRGITYUPSDNHLXAWMJQOFECK',n:'Z'}
+};
+var REFL={B:'YRUHQSLDPXNGOKMIEBFZCWVJAT',C:'FVPJIAOYEDRZXWGCTKUQSBNMHL'};
+var ROTOR_NAMES=['I','II','III','IV','V'];
+var WF={},WB={},NOTCH={},RF={};
+(function(){
+  ROTOR_NAMES.forEach(function(k){
+    var f=[],b=[];
+    for(var i=0;i<26;i++){f[i]=ABC.indexOf(ROTORS[k].w[i]);}
+    for(var j=0;j<26;j++){b[f[j]]=j;}
+    WF[k]=f;WB[k]=b;NOTCH[k]=ABC.indexOf(ROTORS[k].n);
+  });
+  ['B','C'].forEach(function(k){var r=[];for(var i=0;i<26;i++)r[i]=ABC.indexOf(REFL[k][i]);RF[k]=r;});
+})();
+function mod26(x){return ((x%26)+26)%26;}
+function plugMap(plugs){
+  var m=[];for(var i=0;i<26;i++)m[i]=i;
+  for(var k=0;k<plugs.length;k++){var a=ABC.indexOf(plugs[k][0]),b=ABC.indexOf(plugs[k][1]);m[a]=b;m[b]=a;}
+  return m;
+}
+/* pos = [left, middle, right] (0..25). Возвращает {pos, moved:[bool,bool,bool]} — шаг ДО шифрования буквы */
+function stepPos(pos,rot){
+  var l=pos[0],m=pos[1],r=pos[2];
+  var midAtNotch=(m===NOTCH[rot[1]]), rightAtNotch=(r===NOTCH[rot[2]]);
+  var nl=l,nm=m,nr=(r+1)%26,mv=[false,false,true];
+  if(midAtNotch){nl=(l+1)%26;nm=(m+1)%26;mv[0]=true;mv[1]=true;}   /* двойной шаг */
+  else if(rightAtNotch){nm=(m+1)%26;mv[1]=true;}
+  return {pos:[nl,nm,nr],moved:mv};
+}
+function passRotor(x,name,p,ring,back){
+  var sh=mod26(p-ring);
+  if(!back)return mod26(WF[name][(x+sh)%26]-sh);
+  return mod26(WB[name][(x+sh)%26]-sh);
+}
+/* стадии: [вход, после панели, после П, после С, после Л, после рефлектора, Л обр., С обр., П обр., после панели = лампа] */
+function trace(cfg,pos,x){
+  var pm=plugMap(cfg.plugs),st=[x],c=pm[x];st.push(c);
+  var i;
+  for(i=2;i>=0;i--){c=passRotor(c,cfg.rot[i],pos[i],cfg.ring[i],false);st.push(c);}
+  c=RF[cfg.ukw][c];st.push(c);
+  for(i=0;i<3;i++){c=passRotor(c,cfg.rot[i],pos[i],cfg.ring[i],true);st.push(c);}
+  c=pm[c];st.push(c);
+  return st;
+}
+function encStep(cfg,pos,x){
+  var s=stepPos(pos,cfg.rot),t=trace(cfg,s.pos,x);
+  return {pos:s.pos,moved:s.moved,trace:t,out:t[9]};
+}
+function run(cfg,text){
+  var pos=cfg.start.slice(),out='',last=null,t=String(text);
+  for(var i=0;i<t.length;i++){
+    var x=ABC.indexOf(t[i]);if(x<0)continue;
+    last=encStep(cfg,pos,x);pos=last.pos;out+=ABC[last.out];
+  }
+  return {out:out,pos:pos,last:last};
+}
+function fmtKey(c){
+  var L=function(a){return a.map(function(v){return ABC[v];}).join('');};
+  return c.ukw+'/'+c.rot.join('-')+'/'+L(c.ring)+'/'+L(c.start)+'/'+(c.plugs.length?c.plugs.join('-'):'-');
+}
+function parseKey(str){
+  var parts=String(str).toUpperCase().trim().split('/');
+  if(parts.length!==5)return null;
+  var ukw=parts[0].trim();if(!RF[ukw])return null;
+  var rot=parts[1].split(/[-\s.,]+/).filter(Boolean);
+  if(rot.length!==3||rot.some(function(r){return !WF[r];}))return null;
+  if(rot[0]===rot[1]||rot[1]===rot[2]||rot[0]===rot[2])return null;
+  function trip(s){
+    s=s.trim();
+    if(/^[A-Z]{3}$/.test(s))return [ABC.indexOf(s[0]),ABC.indexOf(s[1]),ABC.indexOf(s[2])];
+    var n=s.split(/[-\s.,]+/).filter(Boolean);
+    if(n.length===3&&n.every(function(v){return /^\d{1,2}$/.test(v)&&+v>=1&&+v<=26;}))return n.map(function(v){return +v-1;});
+    return null;
+  }
+  var ring=trip(parts[2]),start=trip(parts[3]);if(!ring||!start)return null;
+  var plugs=[],pt=parts[4].trim();
+  if(pt!==''&&pt!=='-'){
+    var pp=pt.split(/[-\s.,]+/).filter(Boolean),seen={};
+    if(pp.length>10)return null;
+    for(var i=0;i<pp.length;i++){
+      var p=pp[i];
+      if(!/^[A-Z]{2}$/.test(p)||p[0]===p[1]||seen[p[0]]||seen[p[1]])return null;
+      seen[p[0]]=seen[p[1]]=1;plugs.push(p);
+    }
+  }
+  return {ukw:ukw,rot:rot,ring:ring,start:start,plugs:plugs};
+}
+function hash32(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function rng32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function randomCfg(seed){
+  var r=rng32(seed),i;
+  var pool=ROTOR_NAMES.slice(),rot=[];
+  for(i=0;i<3;i++)rot.push(pool.splice(Math.floor(r()*pool.length),1)[0]);
+  var letters=ABC.split(''),plugs=[];
+  for(i=0;i<10;i++){
+    var a=letters.splice(Math.floor(r()*letters.length),1)[0],b=letters.splice(Math.floor(r()*letters.length),1)[0];
+    plugs.push(a<b?a+b:b+a);
+  }
+  var rn=function(){return Math.floor(r()*26);};
+  return {ukw:r()<0.5?'B':'C',rot:rot,ring:[rn(),rn(),rn()],start:[rn(),rn(),rn()],plugs:plugs};
+}
+/*CORE_END*/
+
+</script>
+<script>
+(function(){
+'use strict';
+var $=function(id){return document.getElementById(id);};
+var KEY='a20_enigma_v1';
+var QW=['QWERTZUIO','ASDFGHJK','PYXCVBNML'];
+var CABLE_COL=['#e0705a','#4fb0c2','#e6bb45','#93c46e','#c985c6','#e89a4b','#6e9be0','#d6d06a','#d97aa0','#7fd0a8'];
+var STAGE_NAMES=['Клавиша','Штекеры','Правый ротор','Средний ротор','Левый ротор','Рефлектор','Левый ротор','Средний ротор','Правый ротор','Штекеры → лампа'];
+var CHIP_NAMES=['Клавиша','Штекеры','Правый','Средний','Левый','Рефлектор','Левый','Средний','Правый','Лампа'];
+var SPEEDS=[{n:'медленно',d:1500},{n:'быстро',d:420},{n:'сразу',d:0}];
+var DEMO_KEY='B/II-IV-V/BUL/BLA/AV-BS-CG-DL-FU-HZ-IN-KM-OW-RX';
+var DEMO_TEXT='WETTERBERICHT';
+var MAXLEN=2000;
+
+var segs,cfg,pos,lastStep=null,sound=true,speedI=1,sel=null;
+var held={};
+
+/* ---------- состояние ---------- */
+function clone(c){return {ukw:c.ukw,rot:c.rot.slice(),ring:c.ring.slice(),start:c.start.slice(),plugs:c.plugs.slice()};}
+function seg(){return segs[segs.length-1];}
+function load(){
+  var s=null;try{s=JSON.parse(localStorage.getItem(KEY));}catch(e){}
+  segs=null;
+  if(s&&Array.isArray(s.segs)&&s.segs.length){
+    var ok=s.segs.every(function(g){return g&&typeof g.key==='string'&&parseKey(g.key)&&/^[A-Z]*$/.test(g.inp||'')&&/^[A-Z]*$/.test(g.out||'')&&(g.inp||'').length===(g.out||'').length;});
+    if(ok)segs=s.segs.map(function(g){return {key:g.key,inp:g.inp||'',out:g.out||''};});
+    if(typeof s.sound==='boolean')sound=s.sound;
+    if(typeof s.speed==='number'&&SPEEDS[s.speed])speedI=s.speed;
+  }
+  var fromLink=false;
+  var m=/[#&]k=([^&]+)/.exec(location.hash||'');
+  if(m){var k=null;try{k=decodeURIComponent(m[1]);}catch(e){}
+    if(k&&parseKey(k)){segs=[{key:fmtKey(parseKey(k)),inp:'',out:''}];fromLink=true;}}
+  if(!segs)segs=demoSegs();
+  cfg=parseKey(seg().key);
+  var r=run(cfg,seg().inp);pos=r.pos;lastStep=r.last;
+  if(!lastStep&&!fromLink&&false){}
+  return fromLink;
+}
+function demoSegs(){
+  var c=parseKey(DEMO_KEY),r=run(c,DEMO_TEXT);
+  return [{key:DEMO_KEY,inp:DEMO_TEXT,out:r.out}];
+}
+var saveT=0;
+function save(){clearTimeout(saveT);saveT=setTimeout(function(){
+  try{localStorage.setItem(KEY,JSON.stringify({segs:segs.slice(-30),sound:sound,speed:speedI}));}catch(e){}
+},150);}
+function commitCfg(nc,keepTape){
+  if(seg().inp.length>0){segs.push({key:fmtKey(nc),inp:'',out:''});if(segs.length>30)segs.shift();}
+  else seg().key=fmtKey(nc);
+  cfg=nc;pos=nc.start.slice();lastStep=null;anim=null;clearLamps();
+  save();renderAll();
+}
+function rewind(){commitCfg(clone(cfg));toast('Роторы вернулись на начало сообщения: '+cfg.start.map(function(v){return ABC[v];}).join(''));}
+
+/* ---------- звук ---------- */
+var AC=null,noiseBuf=null;
+function audio(){
+  if(!sound)return null;
+  if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}
+    var n=AC.sampleRate*0.05,b=AC.createBuffer(1,n,AC.sampleRate),d=b.getChannelData(0);
+    for(var i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3);
+    noiseBuf=b;}
+  if(AC.state==='suspended')AC.resume();
+  return AC;
+}
+function sndKey(){
+  var a=audio();if(!a)return;var t=a.currentTime;
+  var s=a.createBufferSource();s.buffer=noiseBuf;
+  var f=a.createBiquadFilter();f.type='bandpass';f.frequency.value=1800+Math.random()*500;f.Q.value=0.9;
+  var g=a.createGain();g.gain.value=0.5;s.connect(f);f.connect(g);g.connect(a.destination);s.start(t);
+  var o=a.createOscillator(),og=a.createGain();o.frequency.setValueAtTime(130,t);o.frequency.exponentialRampToValueAtTime(55,t+0.07);
+  og.gain.setValueAtTime(0.28,t);og.gain.exponentialRampToValueAtTime(0.001,t+0.09);o.connect(og);og.connect(a.destination);o.start(t);o.stop(t+0.1);
+  var o2=a.createOscillator(),g2=a.createGain();o2.type='square';o2.frequency.value=1500+Math.random()*200;
+  g2.gain.setValueAtTime(0.03,t+0.035);g2.gain.exponentialRampToValueAtTime(0.0005,t+0.05);o2.connect(g2);g2.connect(a.destination);o2.start(t+0.035);o2.stop(t+0.06);
+}
+function sndUp(){
+  var a=audio();if(!a)return;var t=a.currentTime,s=a.createBufferSource();s.buffer=noiseBuf;
+  var f=a.createBiquadFilter();f.type='highpass';f.frequency.value=3000;var g=a.createGain();g.gain.value=0.12;
+  s.connect(f);f.connect(g);g.connect(a.destination);s.start(t);
+}
+function sndBell(){
+  var a=audio();if(!a)return;var t=a.currentTime;
+  [880,1320,1760].forEach(function(fr,i){var o=a.createOscillator(),g=a.createGain();o.frequency.value=fr;
+    g.gain.setValueAtTime(0.12/(i+1),t);g.gain.exponentialRampToValueAtTime(0.0005,t+1.4);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+1.5);});
+}
+
+/* ---------- сборка интерфейса ---------- */
+var lampEl={},keyEl={},sockEl={};
+function buildKeys(){
+  var L=$('lamps'),K=$('keys'),P=$('plugs');
+  QW.forEach(function(row){
+    var rl=document.createElement('div'),rk=document.createElement('div'),rp=document.createElement('div');
+    rl.className=rk.className=rp.className='row';
+    row.split('').forEach(function(ch){
+      var l=document.createElement('div');l.className='lamp';l.textContent=ch;lampEl[ch]=l;rl.appendChild(l);
+      var k=document.createElement('button');k.className='key';k.textContent=ch;k.setAttribute('aria-label','Клавиша '+ch);keyEl[ch]=k;rk.appendChild(k);
+      k.addEventListener('pointerdown',function(e){e.preventDefault();k.setPointerCapture&&k.setPointerCapture(e.pointerId);press(ch,'m'+e.pointerId);});
+      var up=function(e){release('m'+e.pointerId);};
+      k.addEventListener('pointerup',up);k.addEventListener('pointercancel',up);k.addEventListener('lostpointercapture',up);
+      k.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();}});
+      var s=document.createElement('button');s.className='sock';s.setAttribute('aria-label','Гнездо '+ch);s.innerHTML='<span>'+ch+'</span>';sockEl[ch]=s;rp.appendChild(s);
+      s.addEventListener('click',function(){plugClick(ch);});
+    });
+    L.appendChild(rl);K.appendChild(rk);P.appendChild(rp);
+  });
+  /* окна роторов */
+  var W=$('windows'),names=['Левый','Средний','Правый'];
+  for(var i=0;i<3;i++)(function(i){
+    var d=document.createElement('div');d.className='win';
+    d.innerHTML='<button class="wbtn" aria-label="'+names[i]+' ротор: следующая буква"><svg viewBox="0 0 14 10"><path d="M7 1L13 9H1z"/></svg></button>'+
+      '<div class="wframe" id="wf'+i+'" title="Колесо мыши — повернуть"><div class="wcol" id="wc'+i+'"></div></div>'+
+      '<button class="wbtn" aria-label="'+names[i]+' ротор: предыдущая буква"><svg viewBox="0 0 14 10"><path d="M7 9L1 1h12z"/></svg></button>'+
+      '<div class="wname" id="wn'+i+'"></div>';
+    W.appendChild(d);
+    var b=d.querySelectorAll('.wbtn');
+    b[0].addEventListener('click',function(){turn(i,1);});
+    b[1].addEventListener('click',function(){turn(i,-1);});
+    d.querySelector('.wframe').addEventListener('wheel',function(e){e.preventDefault();turn(i,e.deltaY<0?1:-1);},{passive:false});
+  })(i);
+}
+function turn(i,d){
+  var c=clone(cfg);c.start=pos.slice();c.start[i]=mod26(c.start[i]+d);sndUp();commitCfg(c);
+}
+function renderWindows(){
+  for(var i=0;i<3;i++){
+    var p=pos[i];
+    $('wc'+i).innerHTML='<span>'+ABC[mod26(p+1)]+'</span><span class="cur">'+ABC[p]+'</span><span>'+ABC[mod26(p-1)]+'</span>';
+    var on=p===NOTCH[cfg.rot[i]]&&i>0;
+    var w=$('wn'+i);w.textContent=cfg.rot[i]+(i===0?'':(on?' · зубец':''));w.className='wname'+(on?' notch':'');
+  }
+}
+function pairOf(l){for(var i=0;i<cfg.plugs.length;i++)if(cfg.plugs[i].indexOf(l)>=0)return i;return -1;}
+function plugClick(l){
+  var pi=pairOf(l);
+  if(sel===null){
+    if(pi>=0){var c=clone(cfg);c.plugs.splice(pi,1);commitCfg(c);return;}
+    sel=l;renderPlugs();return;
+  }
+  if(sel===l){sel=null;renderPlugs();return;}
+  if(pi>=0){toast('Это гнездо уже занято. Нажмите на него, когда ничего не выбрано, чтобы снять провод.');return;}
+  if(cfg.plugs.length>=10){toast('Уже 10 проводов — больше в машину не ставили.');sel=null;renderPlugs();return;}
+  var c2=clone(cfg),a=sel<l?sel:l,b=sel<l?l:sel;c2.plugs.push(a+b);c2.plugs.sort();sel=null;commitCfg(c2);
+}
+function renderPlugs(){
+  Object.keys(sockEl).forEach(function(l){
+    var s=sockEl[l],pi=pairOf(l);
+    s.className='sock'+(pi>=0?' used':'')+(sel===l?' sel':'');
+    
+    s.setAttribute('aria-pressed',sel===l?'true':'false');
+  });
+  $('pcount').textContent=cfg.plugs.length+' из 10 пар';
+  drawCables();
+}
+function drawCables(){
+  var cv=$('cables'),w=$('plugwrap'),r=w.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);
+  var x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,r.width,r.height);
+  function ctr(l){var b=sockEl[l].getBoundingClientRect();return [b.left-r.left+b.width/2,b.top-r.top+18];}
+  cfg.plugs.forEach(function(p,i){
+    var a=ctr(p[0]),b=ctr(p[1]),col=CABLE_COL[i%10];
+    var dx=b[0]-a[0],dy=b[1]-a[1],len=Math.sqrt(dx*dx+dy*dy),sag=14+len*0.22;
+    var mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2+sag;
+    x.lineCap='round';
+    x.strokeStyle='#000b';x.lineWidth=7;x.beginPath();x.moveTo(a[0],a[1]);x.quadraticCurveTo(mx,my+3,b[0],b[1]);x.stroke();
+    x.strokeStyle=col;x.lineWidth=4;x.beginPath();x.moveTo(a[0],a[1]);x.quadraticCurveTo(mx,my,b[0],b[1]);x.stroke();
+    [a,b].forEach(function(q){x.fillStyle='#1c1a16';x.beginPath();x.arc(q[0],q[1],9,0,6.3);x.fill();
+      x.strokeStyle=col;x.lineWidth=2.5;x.stroke();x.fillStyle='#b9a36a';x.beginPath();x.arc(q[0],q[1],3.5,0,6.3);x.fill();});
+  });
+}
+
+/* ---------- карточки настроек ---------- */
+function stepper(parent,label,get,set,fmt){
+  var d=document.createElement('div');
+  d.innerHTML='<label>'+label+'</label><div class="stp"><button class="btn" aria-label="'+label+': меньше">−</button><div class="v"></div><button class="btn" aria-label="'+label+': больше">+</button></div>';
+  var v=d.querySelector('.v'),b=d.querySelectorAll('button');
+  b[0].onclick=function(){set(mod26(get()-1));};b[1].onclick=function(){set(mod26(get()+1));};
+  parent.appendChild(d);
+  return function(){v.textContent=fmt(get());};
+}
+var cardUpd=[];
+function buildCards(){
+  var C=$('cards');
+  var c1=document.createElement('div');c1.className='card';
+  c1.innerHTML='<h3>Рефлектор</h3><div class="seg"><button class="btn" data-u="B">B</button><button class="btn" data-u="C">C</button></div><div class="cinfo">B — самый обычный. C — реже, другая проводка.</div>';
+  c1.querySelectorAll('button').forEach(function(b){b.onclick=function(){var c=clone(cfg);c.start=cfg.start.slice();c.ukw=b.getAttribute('data-u');commitCfg(c);};});
+  C.appendChild(c1);
+  cardUpd.push(function(){c1.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-u')===cfg.ukw?'true':'false');});});
+  var c2=document.createElement('div');c2.className='card';c2.innerHTML='<h3>Роторы слева направо</h3>';
+  var nm=['Левый','Средний','Правый'],sels=[];
+  nm.forEach(function(n,i){
+    var lb=document.createElement('label');lb.textContent=n;var s=document.createElement('select');s.setAttribute('aria-label',n+' ротор');
+    ROTOR_NAMES.forEach(function(r){var o=document.createElement('option');o.value=r;o.textContent=r+'  (зубец '+ROTORS[r].n+')';s.appendChild(o);});
+    s.onchange=function(){var c=clone(cfg),old=c.rot[i],nv=s.value,j=c.rot.indexOf(nv);if(j>=0&&j!==i)c.rot[j]=old;c.rot[i]=nv;commitCfg(c);};
+    c2.appendChild(lb);c2.appendChild(s);sels.push(s);
+  });
+  C.appendChild(c2);cardUpd.push(function(){sels.forEach(function(s,i){s.value=cfg.rot[i];});});
+  var c3=document.createElement('div');c3.className='card';c3.innerHTML='<h3>Кольца (Ringstellung)</h3>';
+  var c4=document.createElement('div');c4.className='card';c4.innerHTML='<h3>Старт сообщения</h3>';
+  var fm=function(v){return ABC[v]+' ('+(v<9?'0':'')+(v+1)+')';};
+  nm.forEach(function(n,i){
+    cardUpd.push(stepper(c3,n,function(){return cfg.ring[i];},function(v){var c=clone(cfg);c.ring[i]=v;commitCfg(c);},fm));
+    cardUpd.push(stepper(c4,n,function(){return cfg.start[i];},function(v){var c=clone(cfg);c.start[i]=v;commitCfg(c);},fm));
+  });
+  C.appendChild(c3);C.appendChild(c4);
+}
+
+/* ---------- лента ---------- */
+function groups(s){return s.replace(/(.{5})/g,'$1 ').trim();}
+function renderTape(){
+  var T=$('tape'),h='',total=0,any=false;
+  segs.forEach(function(g,si){
+    if(si>0&&(g.inp.length||si===segs.length-1))h+='<span class="brk"></span>';
+    for(var i=0;i<g.inp.length;i+=5){
+      var a=g.inp.slice(i,i+5),b=g.out.slice(i,i+5);
+      var last=si===segs.length-1&&i+5>=g.inp.length;
+      var bo=last?b.slice(0,-1)+'<b class="last">'+b.slice(-1)+'</b>':b;
+      h+='<span class="g"><span class="gi">'+a+'</span><span class="go">'+bo+'</span></span>';
+    }
+    total+=g.inp.length;if(g.inp.length)any=true;
+  });
+  T.innerHTML=any?h:'<span class="empty">Лента пуста. Печатайте на клавиатуре или нажимайте клавиши мышью.</span>';
+  T.scrollTop=T.scrollHeight;
+  var s=seg(),same=0;for(var i=0;i<s.inp.length;i++)if(s.inp[i]===s.out[i])same++;
+  $('stats').textContent='В сообщении '+s.inp.length+' букв · совпадений с исходной буквой: '+same;
+  $('mcount').textContent=s.inp.length+' '+plural(s.inp.length,['буква','буквы','букв']);
+  $('keystr').value=fmtKey(withStart());
+}
+function plural(n,f){var a=n%10,b=n%100;return (a===1&&b!==11)?f[0]:(a>=2&&a<=4&&(b<10||b>=20))?f[1]:f[2];}
+function withStart(){return cfg;}
+function allText(which){
+  return segs.filter(function(g){return g.inp.length;}).map(function(g){return groups(g[which]);}).join('\n');
+}
+
+/* ---------- ввод ---------- */
+var lampTimers=[];
+function clearLamps(){lampTimers.forEach(clearTimeout);lampTimers=[];Object.keys(lampEl).forEach(function(l){lampEl[l].classList.remove('on');});}
+function press(ch,src){
+  if(held[src])return;
+  var x=ABC.indexOf(ch);if(x<0)return;
+  if(seg().inp.length>=MAXLEN){toast('Лента заполнена ('+MAXLEN+' букв). Нажмите «Очистить ленту» или смените настройки.');return;}
+  held[src]=ch;keyEl[ch].classList.add('down');
+  if(anim&&!anim.done)finishAnim();
+  clearLamps();
+  var e=encStep(cfg,pos,x);
+  pos=e.pos;lastStep=e;var s=seg();s.inp+=ch;s.out+=ABC[e.out];
+  sndKey();if(e.moved[1])setTimeout(sndUp,60);
+  renderWindows();renderTape();redrawStatic();note(e,ch);
+  startAnim(e);save();
+  if(s.inp.slice(-6)==='TURING'){toast('Алан Тьюринг. Он взломал бы эту ленту, зная, что ни одна буква здесь не шифруется сама в себя.');sndBell();}
+}
+function release(src){
+  var ch=held[src];if(!ch)return;delete held[src];
+  keyEl[ch].classList.remove('down');
+  if(anim&&anim.done){lampTimers.push(setTimeout(function(){lampEl[ABC[anim.e.out]]&&lampEl[ABC[anim.e.out]].classList.remove('on');},140));setRest();}
+}
+function note(e,ch){
+  var m=e.moved,t;
+  if(m[0]&&m[1])t='Двойной шаг: средний ротор стоял на зубце и сдвинул левый, а заодно и сам шагнул дальше.';
+  else if(m[1])t='Правый ротор стоял на зубце и сдвинул средний.';
+  else t='Шагнул правый ротор.';
+  $('stepnote').textContent=t+' Нажато '+ch+', загорится '+ABC[e.out]+'.';
+}
+function backspace(){
+  var s=seg();if(!s.inp.length)return;
+  s.inp=s.inp.slice(0,-1);s.out=s.out.slice(0,-1);
+  var r=run(cfg,s.inp);pos=r.pos;lastStep=r.last;anim=null;clearLamps();
+  save();renderAll();
+}
+function typeBulk(text){
+  var raw=String(text),up=raw.toUpperCase(),clean=up.replace(/[^A-Z]/g,'');
+  var cyr=(raw.match(/[А-Яа-яЁё]/g)||[]).length;
+  if(!clean){toast(cyr?'В тексте только русские буквы. Машина латинская: транслитерации здесь нет, пишите латиницей.':'В тексте нет латинских букв.');return;}
+  var room=MAXLEN-seg().inp.length;if(clean.length>room)clean=clean.slice(0,room);
+  var s=seg(),i,e;
+  for(i=0;i<clean.length;i++){e=encStep(cfg,pos,ABC.indexOf(clean[i]));pos=e.pos;s.inp+=clean[i];s.out+=ABC[e.out];lastStep=e;}
+  anim=null;clearLamps();save();renderAll();
+  var skipped=up.length-clean.length;
+  toast('Напечатано букв: '+clean.length+(skipped>0?'. Пропущено символов: '+skipped+' (цифры, пробелы, знаки'+(cyr?', русские буквы':'')+')':''));
+}
+
+/* ---------- подсказки / тост ---------- */
+var tT=0;
+function toast(t){var e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(tT);tT=setTimeout(function(){e.classList.remove('show');},3800);}
+function copy(text,msg){
+  if(!text){toast('Копировать нечего: лента пуста.');return;}
+  function fb(){var ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;left:-999px';document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand('copy');}catch(e){}document.body.removeChild(ta);toast(ok?msg:'Не удалось скопировать — выделите текст вручную.');}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){toast(msg);},fb);}else fb();
+}
+
+/* ---------- схема «под крышкой» ---------- */
+var cv=$('lid'),cx=cv.getContext('2d'),stat=document.createElement('canvas'),sx=stat.getContext('2d');
+var G=null,anim=null,raf=0,restAlpha=0.55;
+function layout(){
+  var r=cv.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
+  var W=Math.max(300,Math.round(r.width)),H=Math.max(300,Math.round(r.height));
+  cv.width=stat.width=Math.round(W*dpr);cv.height=stat.height=Math.round(H*dpr);
+  var f=[.015,.13,.035,.16,.035,.16,.035,.16,.035,.13,.065],sum=f.reduce(function(a,b){return a+b;},0)+.03,x=0,X=[];
+  f.forEach(function(v){X.push(x);x+=v/sum*W;});
+  G={W:W,H:H,dpr:dpr,top:48,rowH:(H-48-12)/26,
+    u0:X[1],u1:X[2],l0:X[3],l1:X[4],m0:X[5],m1:X[6],r0:X[7],r1:X[8],xp:X[9]+0,xk:X[10]+(X[10]-X[9])*0};
+  G.u1=X[1]+.13/sum*W;G.l1=X[3]+.16/sum*W;G.m1=X[5]+.16/sum*W;G.r1=X[7]+.16/sum*W;
+  G.xp=X[8]+.035/sum*W*0+ (G.r1+.035/sum*W);
+  G.xk=G.xp+.13/sum*W;
+  redrawStatic();
+}
+function Y(r){return G.top+r*G.rowH+G.rowH/2;}
+function fit(c,text,maxW,size,weight){
+  var s=size;c.font=weight+' '+s+'px Bahnschrift,"Segoe UI",sans-serif';
+  while(s>10&&c.measureText(text).width>maxW){s--;c.font=weight+' '+s+'px Bahnschrift,"Segoe UI",sans-serif';}
+  return c.measureText(text).width<=maxW;
+}
+var rotBox=function(c,x0,x1,i){
+  var bt=G.top-6,bh=G.H-bt-4;
+  var g=c.createLinearGradient(x0,0,x1,0);g.addColorStop(0,'#1c1812');g.addColorStop(.5,'#15120e');g.addColorStop(1,'#1c1812');
+  c.fillStyle=g;c.strokeStyle='#8e7231';c.lineWidth=1.5;
+  c.beginPath();c.roundRect?c.roundRect(x0,bt,x1-x0,bh,6):c.rect(x0,bt,x1-x0,bh);c.fill();c.stroke();
+};
+function redrawStatic(){
+  if(!G)return;
+  var c=sx;c.setTransform(G.dpr,0,0,G.dpr,0,0);c.clearRect(0,0,G.W,G.H);
+  c.fillStyle='#0b0a08';c.fillRect(0,0,G.W,G.H);
+  var cols=[[G.l0,G.l1,0],[G.m0,G.m1,1],[G.r0,G.r1,2]],i,r;
+  /* провода между ступенями */
+  c.strokeStyle='rgba(201,162,77,.2)';c.lineWidth=1;c.beginPath();
+  var gaps=[[G.u1,G.l0],[G.l1,G.m0],[G.m1,G.r0],[G.r1,G.xp]];
+  gaps.forEach(function(g){for(r=0;r<26;r++){c.moveTo(g[0],Y(r));c.lineTo(g[1],Y(r));}});
+  c.stroke();
+  /* рефлектор */
+  rotBox(c,G.u0,G.u1,-1);
+  var RR=RF[cfg.ukw],xr=G.u1;
+  c.strokeStyle='rgba(201,162,77,.42)';c.lineWidth=1;c.beginPath();
+  for(r=0;r<26;r++){var q=RR[r];if(q>r){var d=6+(G.u1-G.u0-14)*Math.pow((q-r)/25,.6);c.moveTo(xr,Y(r));c.bezierCurveTo(xr-d,Y(r),xr-d,Y(q),xr,Y(q));}}
+  c.stroke();
+  /* роторы */
+  cols.forEach(function(cl){
+    var x0=cl[0],x1=cl[1],k=cl[2];rotBox(c,x0,x1);
+    var nm=cfg.rot[k],p=pos[k];c.strokeStyle='rgba(222,184,92,.5)';c.lineWidth=1;c.beginPath();
+    for(r=0;r<26;r++){var t=passRotor(r,nm,p,cfg.ring[k],false);c.moveTo(x1,Y(r));c.lineTo(x0,Y(t));}
+    c.stroke();
+  });
+  /* штекеры */
+  var pm=plugMap(cfg.plugs);
+  for(r=0;r<26;r++){
+    var sw=pm[r]!==r;c.strokeStyle=sw?'#e6bb45':'rgba(201,162,77,.2)';c.lineWidth=sw?1.8:1;
+    c.beginPath();c.moveTo(G.xp,Y(r));c.lineTo(G.xk,Y(pm[r]));c.stroke();
+  }
+  /* контакты */
+  c.fillStyle='#c9a24d';
+  function dots(x){for(r=0;r<26;r++){c.beginPath();c.arc(x,Y(r),1.9,0,6.3);c.fill();}}
+  [G.u1,G.l0,G.l1,G.m0,G.m1,G.r0,G.r1,G.xp,G.xk].forEach(dots);
+  /* подписи букв клавиатуры */
+  c.fillStyle='#d8cba8';c.font='11px Bahnschrift,"Segoe UI",sans-serif';c.textAlign='left';c.textBaseline='middle';
+  for(r=0;r<26;r++)c.fillText(ABC[r],G.xk+7,Y(r)+.5);
+  /* заголовки */
+  c.textAlign='center';c.textBaseline='alphabetic';
+  function title(x0,x1,t1,t2,hot){
+    var w=x1-x0-6;c.fillStyle='#f0e2b8';fit(c,t1,w,13,'bold');c.fillText(t1,(x0+x1)/2,G.top-26);
+    c.fillStyle=hot?'#ffd35e':'#b9ad90';
+    if(t2&&fit(c,t2,w,11,'normal'))c.fillText(t2,(x0+x1)/2,G.top-12);
+  }
+  title(G.u0,G.u1,'Рефлектор',cfg.ukw,false);
+  var nmL=['Левый','Средний','Правый'];
+  cols.forEach(function(cl){var k=cl[2],p=pos[k];
+    var hot=p===NOTCH[cfg.rot[k]]&&k>0;
+    title(cl[0],cl[1],nmL[k]+' '+cfg.rot[k],'окно '+ABC[p]+' · зубец '+ROTORS[cfg.rot[k]].n,hot);});
+  title(G.xp-6,G.xk+22,'Штекеры','→ клавиши и лампы',false);
+  buildPath();
+  draw();
+}
+function buildPath(){
+  if(!lastStep||!G){if(anim)anim.pts=null;return;}
+  var t=lastStep.trace,pts=[],st=[];
+  function P(x,r,s){pts.push([x,Y(r)]);st.push(s);}
+  P(G.xk,t[0],0);P(G.xp,t[1],1);P(G.r1,t[1],1);P(G.r0,t[2],2);P(G.m1,t[2],2);P(G.m0,t[3],3);P(G.l1,t[3],3);P(G.l0,t[4],4);P(G.u1,t[4],4);
+  var ya=Y(t[4]),yb=Y(t[5]),d=6+(G.u1-G.u0-14)*Math.pow(Math.abs(t[5]-t[4])/25,.6),xr=G.u1;
+  if(t[4]!==t[5]){
+    for(var i=1;i<=14;i++){var u=i/14,v=1-u;
+      var bx=v*v*v*xr+3*v*v*u*(xr-d)+3*v*u*u*(xr-d)+u*u*u*xr,by=v*v*v*ya+3*v*v*u*ya+3*v*u*u*yb+u*u*u*yb;
+      pts.push([bx,by]);st.push(i===14?5:4);}
+  }else{pts.push([xr,yb]);st.push(5);}
+  P(G.l0,t[5],5);P(G.l1,t[6],6);P(G.m0,t[6],6);P(G.m1,t[7],7);P(G.r0,t[7],7);P(G.r1,t[8],8);P(G.xp,t[8],8);P(G.xk,t[9],9);
+  var cum=[0],tot=0;
+  for(var j=1;j<pts.length;j++){tot+=Math.hypot(pts[j][0]-pts[j-1][0],pts[j][1]-pts[j-1][1]);cum.push(tot);}
+  if(!anim)anim={done:true,e:lastStep,t0:0,dur:0};
+  anim.pts=pts;anim.st=st;anim.cum=cum;anim.total=tot;anim.e=lastStep;
+}
+var alphaNow=restAlpha,progNow=1;
+function draw(){
+  if(!G)return;
+  cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cv.width,cv.height);cx.drawImage(stat,0,0);
+  cx.setTransform(G.dpr,0,0,G.dpr,0,0);
+  if(!anim||!anim.pts)return;
+  var pts=anim.pts,lim=anim.total*progNow;
+  var path=[pts[0]],i;
+  for(i=1;i<pts.length;i++){
+    if(anim.cum[i]<=lim)path.push(pts[i]);
+    else{var seg=anim.cum[i]-anim.cum[i-1],u=seg?(lim-anim.cum[i-1])/seg:0;path.push([pts[i-1][0]+(pts[i][0]-pts[i-1][0])*u,pts[i-1][1]+(pts[i][1]-pts[i-1][1])*u]);break;}
+  }
+  cx.lineJoin='round';cx.lineCap='round';
+  [[9,.16],[4,.95]].forEach(function(s,k){
+    cx.globalAlpha=alphaNow*s[1];cx.strokeStyle=k?'#ffd35e':'#ff9d2e';cx.lineWidth=s[0];
+    cx.beginPath();cx.moveTo(path[0][0],path[0][1]);for(var j=1;j<path.length;j++)cx.lineTo(path[j][0],path[j][1]);cx.stroke();
+  });
+  cx.globalAlpha=1;
+  if(progNow<1){var h=path[path.length-1];cx.fillStyle='#fff6c8';cx.beginPath();cx.arc(h[0],h[1],4.5,0,6.3);cx.fill();}
+  /* подсветка контактов пути */
+  cx.fillStyle='#fff0b0';cx.globalAlpha=alphaNow;
+  for(i=0;i<path.length;i++){if(anim.pts&&i<pts.length&&anim.cum[i]<=lim){cx.beginPath();cx.arc(pts[i][0],pts[i][1],2.6,0,6.3);cx.fill();}}
+  cx.globalAlpha=1;
+}
+function chips(p){
+  var t=lastStep?lastStep.trace:null,reached=-1;
+  if(anim&&anim.pts){var lim=anim.total*p;for(var i=0;i<anim.pts.length;i++)if(anim.cum[i]<=lim+0.01)reached=Math.max(reached,anim.st[i]);}
+  var cs=$('chips').children;
+  for(var k=0;k<cs.length;k++){var on=t&&k<=reached;cs[k].className='chip'+(on?' on':'');cs[k].lastChild.textContent=on?ABC[t[k]]:'·';}
+}
+function startAnim(e){
+  var d=SPEEDS[speedI].d;
+  anim={done:false,e:e,t0:performance.now(),dur:d};
+  buildPath();alphaNow=1;progNow=d?0:1;
+  if(!d){finishAnim();return;}
+  cancelAnimationFrame(raf);raf=requestAnimationFrame(tick);
+}
+function tick(now){
+  if(!anim||anim.done)return;
+  var p=Math.min(1,(now-anim.t0)/anim.dur);progNow=p;draw();chips(p);
+  if(p>=1)finishAnim();else raf=requestAnimationFrame(tick);
+}
+function finishAnim(){
+  if(!anim)return;anim.done=true;progNow=1;cancelAnimationFrame(raf);
+  var any=Object.keys(held).length>0;
+  alphaNow=any?1:restAlpha;draw();chips(1);
+  var l=lampEl[ABC[anim.e.out]];if(l)l.classList.add('on');
+  if(!any)lampTimers.push(setTimeout(function(){l&&l.classList.remove('on');},260));
+}
+function setRest(){alphaNow=restAlpha;draw();}
+function buildChips(){
+  var h='';for(var i=0;i<10;i++)h+='<div class="chip" title="'+STAGE_NAMES[i]+'"><i>'+CHIP_NAMES[i]+'</i><b>·</b></div>';
+  $('chips').innerHTML=h;
+}
+
+function renderAll(){
+  renderWindows();renderTape();renderPlugs();cardUpd.forEach(function(f){f();});
+  if(lastStep){anim={done:true,e:lastStep,t0:0,dur:0};alphaNow=restAlpha;progNow=1;}
+  else anim=null;
+  redrawStatic();chips(1);
+  if(!lastStep){$('stepnote').textContent='Нажмите любую клавишу — здесь покажется путь тока.';}
+  else note(lastStep,ABC[lastStep.trace[0]]);
+  $('bSound').textContent='Звук: '+(sound?'вкл':'выкл');$('bSound').setAttribute('aria-pressed',sound);
+  $('bSpeed').textContent='Ток: '+SPEEDS[speedI].n;
+}
+
+/* ---------- кнопки ---------- */
+function applyKeyString(str,msgEl){
+  var c=parseKey(str);
+  if(!c){$('keymsg').className='msg err';$('keymsg').textContent='Не разобрал ключ. Нужно пять частей через «/»: B/II-IV-V/BUL/BLA/AV-BS (рефлектор, роторы, кольца, окна, штекеры).';return false;}
+  commitCfg(c);$('keymsg').className='msg ok';$('keymsg').textContent='Ключ применён: '+fmtKey(c);return true;
+}
+function dayStr(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+function bind(){
+  $('bSound').onclick=function(){sound=!sound;if(sound)audio();renderAll();save();};
+  $('bSpeed').onclick=function(){speedI=(speedI+1)%SPEEDS.length;renderAll();save();};
+  $('bHelp').onclick=function(){$('help').classList.add('show');$('bHelpClose').focus();};
+  $('bHelpClose').onclick=function(){$('help').classList.remove('show');};
+  $('help').addEventListener('click',function(e){if(e.target===$('help'))$('help').classList.remove('show');});
+  $('bReset').onclick=function(){segs=demoSegs();cfg=parseKey(seg().key);var r=run(cfg,seg().inp);pos=r.pos;lastStep=r.last;sel=null;history.replaceState(null,'',location.pathname);save();renderAll();toast('Возвращён исторический пример: Барбаросса, 1941.');};
+  $('bClearPlugs').onclick=function(){if(!cfg.plugs.length)return;var c=clone(cfg);c.plugs=[];sel=null;commitCfg(c);};
+  $('bCopyOut').onclick=function(){copy(allText('out'),'Результат скопирован (группами по 5).');};
+  $('bCopyIn').onclick=function(){copy(allText('inp'),'Ввод скопирован.');};
+  $('bDownload').onclick=function(){
+    var t='Энигма M3\n\n'+segs.filter(function(g){return g.inp.length;}).map(function(g){return 'Ключ: '+g.key+'\nВвод:\n'+groups(g.inp)+'\nРезультат:\n'+groups(g.out)+'\n';}).join('\n');
+    if(segs.every(function(g){return !g.inp.length;})){toast('Лента пуста.');return;}
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/plain;charset=utf-8'}));a.download='enigma.txt';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+  };
+  $('bRewind').onclick=rewind;$('bBack').onclick=backspace;
+  $('bClearTape').onclick=function(){segs=[{key:seg().key,inp:'',out:''}];cfg=parseKey(seg().key);pos=cfg.start.slice();lastStep=null;save();renderAll();};
+  $('bPaste').onclick=function(){var v=$('paste').value;$('paste').value='';typeBulk(v);};
+  $('paste').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();$('bPaste').click();}});
+  $('bRoundtrip').onclick=function(){
+    var s=seg();if(!s.inp.length){toast('Сначала напечатайте что-нибудь.');return;}
+    var back=run(cfg,s.out).out;
+    toast(back===s.inp?'Проверка пройдена: результат, поданный в ту же машину с той же позиции, вернул исходный текст.':'Расшифровка не совпала с вводом — такого быть не должно.');
+  };
+  $('bApply').onclick=function(){applyKeyString($('keystr').value);};
+  $('keystr').addEventListener('keydown',function(e){if(e.key==='Enter')$('bApply').click();});
+  $('bCopyKey').onclick=function(){copy(fmtKey(cfg),'Ключ скопирован: '+fmtKey(cfg));};
+  $('bCopyLink').onclick=function(){copy(location.href.split('#')[0]+'#k='+encodeURIComponent(fmtKey(cfg)),'Ссылка с ключом скопирована.');};
+  $('bToday').onclick=function(){
+    var w=$('word').value.trim();if(!w){toast('Введите общее кодовое слово — у друга должно быть то же самое.');$('word').focus();return;}
+    var c=randomCfg(hash32(w.toUpperCase()+'|'+dayStr()));commitCfg(c);
+    $('keymsg').className='msg ok';$('keymsg').textContent='Ключ на '+dayStr()+' по слову «'+w+'»: '+fmtKey(c);
+  };
+  $('bRand').onclick=function(){var c=randomCfg((Math.random()*4294967296)>>>0);commitCfg(c);$('keymsg').className='msg ok';$('keymsg').textContent='Случайный ключ: '+fmtKey(c);};
+  $('bDemo1').onclick=function(){commitCfg(parseKey('B/I-II-III/AAA/AAA/-'));typeBulk('AAAAA');toast('Проверка: AAAAA → '+seg().out.slice(-5)+' (должно быть BDZGO)');};
+  $('bDemo2').onclick=function(){commitCfg(parseKey(DEMO_KEY.replace('BUL','02-21-12')));var c0=parseKey('B/II-IV-V/02-21-12/BLA/AV-BS-CG-DL-FU-HZ-IN-KM-OW-RX');commitCfg(c0);typeBulk('EDPUDNRGYSZRCXNUYTPOMRMBO');toast('Это настоящий шифртекст 1941 года. Результат: '+groups(seg().out));};
+  document.addEventListener('keydown',function(e){
+    var tg=e.target&&e.target.tagName,inField=tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT';
+    if(e.key==='Escape'){$('help').classList.remove('show');if(sel){sel=null;renderPlugs();}return;}
+    if(inField||e.ctrlKey||e.metaKey||e.altKey)return;
+    if($('help').classList.contains('show'))return;
+    if(/^[a-zA-Z]$/.test(e.key)){e.preventDefault();if(!e.repeat)press(e.key.toUpperCase(),'k'+e.code);return;}
+    if(/^[А-Яа-яЁё]$/.test(e.key)){toast('Включена русская раскладка. Машина латинская: переключитесь на English и печатайте латиницей.');return;}
+    if(e.key==='Backspace'){e.preventDefault();backspace();return;}
+    if(e.key==='Enter'){if(tg==='BUTTON')return;e.preventDefault();rewind();return;}
+    if(e.key==='?'||(e.code==='Slash'&&e.shiftKey)){$('bHelp').click();return;}
+    if(e.code==='Period'){$('bSound').click();return;}
+    if(e.code==='Comma'){$('bSpeed').click();return;}
+    if(e.key===' '){if(tg==='BUTTON')return;e.preventDefault();toast('В машине нет пробела. В настоящих сообщениях вместо него ставили букву X.');return;}
+    if(/^[0-9]$/.test(e.key)){toast('Цифр в машине нет — их писали словами: EINS, ZWEI, DREI.');}
+  });
+  document.addEventListener('keyup',function(e){release('k'+e.code);});
+  window.addEventListener('blur',function(){Object.keys(held).forEach(release);});
+  document.addEventListener('visibilitychange',function(){if(document.hidden){cancelAnimationFrame(raf);if(anim&&!anim.done)finishAnim();}});
+  window.addEventListener('pointerdown',function(){if(sound)audio();},{once:true});
+  var rs=0;
+  function onRes(){cancelAnimationFrame(rs);rs=requestAnimationFrame(function(){layout();drawCables();});}
+  if(window.ResizeObserver)new ResizeObserver(onRes).observe(cv);
+  window.addEventListener('resize',onRes);
+}
+
+buildKeys();buildCards();buildChips();bind();
+var fromLink=load();
+renderAll();layout();chips(1);
+if(fromLink)toast('Ключ из ссылки применён. Теперь вы можете расшифровать ленту друга.');
+$('keymsg').textContent='';
+/* для автотестов */
+window.__enigma={press:function(c){press(c,'t'+c+Math.random());release('t'+c);},state:function(){return {key:fmtKey(cfg),pos:pos.map(function(v){return ABC[v];}).join(''),segs:segs};},
+  apply:function(k){return applyKeyString(k);},sdump:function(){return anim&&anim.pts?{n:anim.pts.length,tot:anim.total}:null;}};
+})();
+
+</script>
+</body>
+</html>

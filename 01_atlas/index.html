@@ -1,0 +1,1405 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Атлас несуществующих земель</title>
+<style>
+:root{--bg:#23170e;--panel:#2a1c11;--cream:#f2e6c8;--mut:#cdbb97;--gold:#d2b072;--ink:#2b1c10;--line:#5a4326}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--cream);font-family:Constantia,"Palatino Linotype",Palatino,Georgia,serif;font-size:15px}
+#app{display:grid;grid-template-columns:minmax(0,1fr) 322px;height:100vh;width:100%}
+#stage{position:relative;overflow:hidden;background:#2b2118;min-height:0;touch-action:none}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab}
+#cv.drag{cursor:grabbing}
+#cv.hit{cursor:pointer}
+.back{position:absolute;left:10px;top:8px;z-index:5;display:inline-flex;align-items:center;min-height:36px;padding:0 12px;background:#f0e3c0;color:var(--ink);border:1px solid #8a6a3a;text-decoration:none;font-size:14px;font-style:italic;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.back:hover,.back:focus-visible{background:#fff3d0;outline:2px solid var(--gold)}
+#status{position:absolute;left:10px;bottom:10px;z-index:4;background:rgba(240,227,192,.94);color:var(--ink);border:1px solid #8a6a3a;padding:6px 10px;font-size:13px;max-width:calc(100% - 140px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#zoom{position:absolute;right:10px;bottom:10px;z-index:4;display:flex;gap:4px}
+#zoom button{width:38px;height:38px;border:1px solid #8a6a3a;background:#f0e3c0;color:var(--ink);font:inherit;font-size:20px;cursor:pointer;line-height:1}
+#zoom button:hover{background:#fff3d0}
+#prog{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:6;background:#2a1c11;border:1px solid var(--gold);color:var(--cream);padding:8px 14px 10px;min-width:260px;text-align:center;font-style:italic;display:none}
+#prog i{display:block;height:3px;background:#4b3822;margin-top:7px}
+#prog b{display:block;height:3px;background:var(--gold);width:0}
+#card{position:absolute;z-index:7;pointer-events:none;width:270px;background:#f2e5c1;color:var(--ink);border:1px solid #6b4d27;outline:1px solid #b08e55;outline-offset:-5px;padding:12px 14px 12px;box-shadow:0 6px 18px rgba(0,0,0,.5);display:none;line-height:1.35}
+#card h3{margin:0;font-size:19px;letter-spacing:.02em}
+#card .st{font-style:italic;font-size:13px;color:#5a3d1c;margin:1px 0 7px}
+#card dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:14px}
+#card dt{color:#5a3d1c}
+#card dd{margin:0}
+#card p{margin:8px 0 0;font-style:italic;font-size:13.5px;border-top:1px solid #b08e55;padding-top:6px}
+#ring{position:absolute;z-index:6;width:22px;height:22px;margin:-11px 0 0 -11px;border:2px solid #7a1f12;border-radius:50%;pointer-events:none;display:none}
+#panel{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:14px 16px 18px;min-height:0}
+#panel h1{margin:0;font-size:20px;line-height:1.15;font-weight:700;letter-spacing:.01em;color:var(--cream)}
+#panel .sub{margin:2px 0 12px;color:var(--mut);font-style:italic;font-size:14px}
+.sec{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+.lab{display:block;color:var(--mut);font-size:13px;margin-bottom:4px;letter-spacing:.03em}
+.row{display:flex;gap:6px}
+input[type=text]{flex:1;min-width:0;height:38px;background:#1b110a;border:1px solid var(--line);color:var(--cream);font:inherit;padding:0 10px;font-size:16px}
+input[type=text]:focus{outline:2px solid var(--gold);outline-offset:0}
+button.b{min-height:38px;padding:0 12px;background:transparent;color:var(--cream);border:1px solid var(--gold);font:inherit;font-size:14px;cursor:pointer}
+button.b:hover{background:#3b2a19}
+button.b:focus-visible,#zoom button:focus-visible{outline:2px solid #fff;outline-offset:1px}
+button.pri{background:var(--gold);color:#23170e;font-weight:700}
+button.pri:hover{background:#e3c586}
+.sl{margin:7px 0}
+.sl .t{display:flex;justify-content:space-between;font-size:14px;color:var(--cream)}
+.sl output{color:var(--gold);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;margin:2px 0 0;accent-color:var(--gold);height:22px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--gold)}
+.seg button{min-height:38px;background:transparent;border:0;border-right:1px solid var(--gold);color:var(--cream);font:inherit;font-size:13px;cursor:pointer;padding:0 4px;line-height:1.15}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--gold);color:#23170e;font-weight:700}
+.tg{display:flex;flex-wrap:wrap;gap:6px}
+.tg button{min-height:36px;padding:0 11px;background:transparent;color:var(--cream);border:1px solid var(--line);font:inherit;font-size:13.5px;cursor:pointer}
+.tg button[aria-pressed=true]{border-color:var(--gold);background:#3b2a19;color:#fff3d0}
+.tg button[aria-pressed=true]::before{content:"\2713\00a0"}
+details summary{cursor:pointer;min-height:36px;display:flex;align-items:center;color:var(--mut);font-size:13px;letter-spacing:.03em}
+#clist{list-style:none;margin:2px 0 0;padding:0}
+#clist li{display:flex;align-items:center;gap:8px;min-height:36px;cursor:pointer;font-size:14px;padding:0 4px}
+#clist li:hover{background:#3b2a19}
+#clist .sw{width:14px;height:14px;border:1px solid #0006;flex:none}
+#clist small{margin-left:auto;color:var(--mut);font-size:12.5px;white-space:nowrap}
+.hint{color:var(--mut);font-size:13px;line-height:1.4;margin-top:10px}
+kbd{border:1px solid var(--mut);padding:0 5px;font:inherit;font-size:12.5px;color:var(--cream)}
+#help{position:fixed;inset:0;background:rgba(10,6,2,.7);z-index:20;display:none;align-items:center;justify-content:center;padding:16px}
+#help .in{background:#f2e5c1;color:var(--ink);border:1px solid #6b4d27;outline:1px solid #b08e55;outline-offset:-6px;padding:22px 26px;max-width:420px;width:100%;max-height:90vh;overflow:auto}
+#help h2{margin:0 0 10px;font-size:20px}
+#help table{border-collapse:collapse;width:100%}
+#help td{padding:3px 0;font-size:15px}
+#help td:first-child{width:90px;font-weight:700}
+@media (max-width:820px){
+ #app{display:block;height:auto}
+ #stage{height:64vh;min-height:360px}
+ #panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+ #card{width:230px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+ <div id="stage">
+  <canvas id="cv" aria-label="Карта выдуманного мира"></canvas>
+  <a class="back" href="../index.html">← Все приложения</a>
+  <div id="prog"><span id="progt">Поднимаю горы…</span><i><b id="progb"></b></i></div>
+  <div id="ring"></div>
+  <div id="card"></div>
+  <div id="status">Наведите на город — узнаете, чем он живёт</div>
+  <div id="zoom"><button id="zin" title="Приблизить (+)" aria-label="Приблизить">+</button><button id="zout" title="Отдалить (−)" aria-label="Отдалить">−</button><button id="zhome" title="Весь лист (0)" aria-label="Весь лист">&#8962;</button></div>
+ </div>
+ <aside id="panel">
+  <h1>Атлас несуществующих земель</h1>
+  <p class="sub">Генератор карт миров</p>
+  <div class="sec" style="margin-top:0;border-top:0;padding-top:0">
+   <label class="lab" for="seed">Номер мира (сид)</label>
+   <div class="row"><input type="text" id="seed" maxlength="24" autocomplete="off" spellcheck="false"><button class="b pri" id="rnd" title="Новый мир (R)">Случайно</button></div>
+  </div>
+  <div class="sec" id="sliders"></div>
+  <div class="sec"><span class="lab">Стиль</span>
+   <div class="seg" id="styles"><button data-s="atlas">Старинный атлас</button><button data-s="chart">Морская карта</button><button data-s="engr">Гравюра</button></div>
+  </div>
+  <div class="sec"><span class="lab">Что рисовать</span>
+   <div class="tg" id="toggles"></div>
+  </div>
+  <div class="sec row"><button class="b pri" id="dl" style="flex:1" title="Скачать PNG 3000 px (S)">Скачать PNG 3000 px</button><button class="b" id="reset" title="Сбросить настройки">Сбросить</button></div>
+  <details class="sec" id="cdet" open><summary>Государства этого мира</summary><ul id="clist"></ul></details>
+  <p class="hint">Колесо — масштаб, перетаскивание — сдвиг. <kbd>?</kbd> — все клавиши.</p>
+ </aside>
+</div>
+<div id="help" role="dialog" aria-modal="true" aria-label="Горячие клавиши"><div class="in"><h2>Горячие клавиши</h2>
+<table>
+<tr><td>R</td><td>новый случайный мир</td></tr>
+<tr><td>S</td><td>скачать PNG 3000 px</td></tr>
+<tr><td>1 2 3</td><td>стиль: атлас, морская карта, гравюра</td></tr>
+<tr><td>L</td><td>подписи вкл/выкл</td></tr>
+<tr><td>D</td><td>дороги</td></tr>
+<tr><td>B</td><td>границы</td></tr>
+<tr><td>G</td><td>рисунки: корабли, чудища</td></tr>
+<tr><td>+ −</td><td>масштаб</td></tr>
+<tr><td>0</td><td>показать весь лист</td></tr>
+<tr><td>?</td><td>эта подсказка, Esc — закрыть</td></tr>
+</table>
+<p style="margin:12px 0 0;font-style:italic">Попробуйте ввести в сид слово «Атлантида».</p>
+<p style="margin:12px 0 0"><button class="b" id="hclose" style="color:#2b1c10;border-color:#6b4d27">Закрыть</button></p></div></div>
+
+<script>
+'use strict';
+/* ====================== константы и утилиты ====================== */
+const W=240,H=160,M=7,FW=W+2*M,FH=H+2*M,N=W*H;
+const FONT='Constantia,"Palatino Linotype",Palatino,Georgia,serif';
+const LSKEY='a20_atlas_v1';
+const D8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+function hashStr(s){let h=1779033703^s.length;for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),3432918353);h=h<<13|h>>>19}h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return(h^h>>>16)>>>0}
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rngFor=(seed,label)=>mulberry(hashStr(seed+'|'+label));
+function makeNoise(rng){
+  const p=new Uint8Array(512),a=[];for(let i=0;i<256;i++)a.push(i);
+  for(let i=255;i>0;i--){const j=rng()*(i+1)|0;const t=a[i];a[i]=a[j];a[j]=t}
+  for(let i=0;i<512;i++)p[i]=a[i&255];
+  const gx=[1,-1,1,-1,1,-1,0,0],gy=[1,1,-1,-1,0,0,1,-1];
+  const fd=t=>t*t*t*(t*(t*6-15)+10);
+  return function(x,y){
+    const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,X=xi&255,Y=yi&255;
+    const a00=p[p[X]+Y]&7,a10=p[p[X+1]+Y]&7,a01=p[p[X]+Y+1]&7,a11=p[p[X+1]+Y+1]&7;
+    const n00=gx[a00]*xf+gy[a00]*yf,n10=gx[a10]*(xf-1)+gy[a10]*yf,n01=gx[a01]*xf+gy[a01]*(yf-1),n11=gx[a11]*(xf-1)+gy[a11]*(yf-1);
+    const u=fd(xf),v=fd(yf);
+    return lerp(lerp(n00,n10,u),lerp(n01,n11,u),v)*1.35;
+  };
+}
+function fbm(n,x,y,oct){let s=0,a=1,f=1,t=0;for(let i=0;i<oct;i++){s+=n(x*f,y*f)*a;t+=a;a*=.5;f*=2}return s/t}
+function makeHeap(cap){
+  const idx=new Int32Array(cap),key=new Float32Array(cap);let n=0;
+  return{size:()=>n,clear(){n=0},
+    push(i,k){let c=n++;while(c>0){const p=(c-1)>>1;if(key[p]<=k)break;idx[c]=idx[p];key[c]=key[p];c=p}idx[c]=i;key[c]=k},
+    pop(){const r=idx[0];n--;const li=idx[n],lk=key[n];let c=0;for(;;){let l=2*c+1;if(l>=n)break;if(l+1<n&&key[l+1]<key[l])l++;if(key[l]>=lk)break;idx[c]=idx[l];key[c]=key[l];c=l}idx[c]=li;key[c]=lk;return r}};
+}
+function quant(arr,q,mask){
+  let a;if(mask){const t=[];for(let i=0;i<arr.length;i++)if(mask[i])t.push(arr[i]);a=Float32Array.from(t)}else a=Float32Array.from(arr);
+  if(!a.length)return 0;a.sort();return a[clamp(Math.floor(q*(a.length-1)),0,a.length-1)];
+}
+/* марширующие квадраты → ломаные */
+function contour(f,w,h,lv){
+  const segs=[];
+  const T=(x,y)=>(y*w+x)*2,B=(x,y)=>((y+1)*w+x)*2,L=(x,y)=>(y*w+x)*2+1,R=(x,y)=>(y*w+x+1)*2+1;
+  for(let y=0;y<h-1;y++)for(let x=0;x<w-1;x++){
+    const a=f[y*w+x]>lv,b=f[y*w+x+1]>lv,c=f[(y+1)*w+x+1]>lv,d=f[(y+1)*w+x]>lv;
+    const ci=(a?1:0)|(b?2:0)|(c?4:0)|(d?8:0);if(ci===0||ci===15)continue;
+    const t=T(x,y),r=R(x,y),bo=B(x,y),l=L(x,y);
+    switch(ci){
+      case 1:case 14:segs.push(l,t);break;case 2:case 13:segs.push(t,r);break;case 3:case 12:segs.push(l,r);break;
+      case 4:case 11:segs.push(r,bo);break;case 6:case 9:segs.push(t,bo);break;case 7:case 8:segs.push(l,bo);break;
+      case 5:{const m=(f[y*w+x]+f[y*w+x+1]+f[(y+1)*w+x+1]+f[(y+1)*w+x])/4>lv;if(m)segs.push(t,r,bo,l);else segs.push(l,t,r,bo);break}
+      case 10:{const m=(f[y*w+x]+f[y*w+x+1]+f[(y+1)*w+x+1]+f[(y+1)*w+x])/4>lv;if(m)segs.push(l,t,r,bo);else segs.push(t,r,bo,l);break}
+    }
+  }
+  const adj=new Map();
+  const add=(p,q)=>{let e=adj.get(p);if(!e){e=[];adj.set(p,e)}e.push(q)};
+  for(let i=0;i<segs.length;i+=2){add(segs[i],segs[i+1]);add(segs[i+1],segs[i])}
+  const pt=id=>{const k=id>>1,x=k%w,y=(k-x)/w;
+    if(id&1){const f0=f[k],f1=f[k+w];return[x,y+(lv-f0)/(f1-f0)]}
+    const f0=f[k],f1=f[k+1];return[x+(lv-f0)/(f1-f0),y]};
+  const seen=new Set(),out=[];
+  const walk=(start)=>{
+    const pts=[],ids=[start];seen.add(start);let prev=-1,cur=start,closed=false;
+    for(;;){
+      const nb=adj.get(cur);let nx=-1;
+      for(const q of nb){if(q!==prev&&!seen.has(q)){nx=q;break}}
+      if(nx<0){ if(nb.length>1&&nb.some(q=>q===start)&&ids.length>2)closed=true; break}
+      seen.add(nx);ids.push(nx);prev=cur;cur=nx;
+    }
+    for(const id of ids){const p=pt(id);pts.push(p[0],p[1])}
+    if(closed)pts.push(pts[0],pts[1]);
+    out.push(pts);
+  };
+  for(const [id,nb] of adj)if(nb.length===1&&!seen.has(id))walk(id);
+  for(const [id] of adj)if(!seen.has(id))walk(id);
+  return out;
+}
+function chaikin(p,it){
+  for(let k=0;k<it;k++){
+    const n=p.length/2,closed=p[0]===p[p.length-2]&&p[1]===p[p.length-1],q=[];
+    const m=closed?n-1:n;
+    if(!closed)q.push(p[0],p[1]);
+    for(let i=0;i<(closed?m:m-1);i++){
+      const j=(i+1)%m,x0=p[i*2],y0=p[i*2+1],x1=p[j*2],y1=p[j*2+1];
+      q.push(x0*.75+x1*.25,y0*.75+y1*.25,x0*.25+x1*.75,y0*.25+y1*.75);
+    }
+    if(closed)q.push(q[0],q[1]);else q.push(p[(n-1)*2],p[(n-1)*2+1]);
+    p=q;
+  }
+  return p;
+}
+function boxBlur(a,w,h,r,passes){
+  const t=new Float32Array(a.length);
+  for(let ps=0;ps<passes;ps++){
+    for(let y=0;y<h;y++){let s=0;const o=y*w;for(let x=-r;x<=r;x++)s+=a[o+clamp(x,0,w-1)];
+      for(let x=0;x<w;x++){t[o+x]=s/(2*r+1);s+=a[o+clamp(x+r+1,0,w-1)]-a[o+clamp(x-r,0,w-1)]}}
+    for(let x=0;x<w;x++){let s=0;for(let y=-r;y<=r;y++)s+=t[clamp(y,0,h-1)*w+x];
+      for(let y=0;y<h;y++){a[y*w+x]=s/(2*r+1);s+=t[clamp(y+r+1,0,h-1)*w+x]-t[clamp(y-r,0,h-1)*w+x]}}
+  }
+  return a;
+}
+function pathFrom(polys,tf,m){
+  const p=new Path2D();
+  for(const q of polys){if(q.length<6)continue;
+    p.moveTo(tf(q[0],0),tf(q[1],1));for(let i=2;i<q.length;i+=2)p.lineTo(tf(q[i],0),tf(q[i+1],1));
+    if(m!==false&&q[0]===q[q.length-2]&&q[1]===q[q.length-1])p.closePath();
+  }
+  return p;
+}
+
+/* ====================== названия ====================== */
+const S1=['Ве','Ска','Бо','Тор','Дре','Мо','Кар','Ли','Ру','Зе','Ни','Ва','Сва','Гор','Зла','Ста','Бра','Хол','Дол','Яро','Ми','Ол','Вы','Бе','Ка','Ту','Са','Ло','Ра','Ге','Гре','Кре','Дра','Тве','Ше','Ту','Бел','Ор','Мар'];
+const S2=['ле','на','ро','ми','да','ти','ра','ва','ко','ла','ре','ви','но','ду','се','ли','му','ба'];
+const EN=['рн','лд','в','н','м','слав','мир','бор','гор','вол','дан','зар','лав','рд','нт','лм','нн','рг','лн','сл','тр','мор','вин','тов','гост','дар','мар','ран','лим','мень','стан'];
+const isV=c=>'аеёиоуыэюя'.includes(c);
+function makeRoot(R){
+  for(let k=0;k<20;k++){
+    const a=S1[R()*S1.length|0];let s=a;
+    const closed=!isV(a[a.length-1]);
+    if(closed||R()<.5)s+=S2[R()*S2.length|0];
+    s+=EN[R()*EN.length|0];
+    if(/(.{2,3})\1/.test(s.toLowerCase()))continue;
+    if(s.length<5||s.length>11)continue;
+    return s;
+  }
+  return 'Велемор';
+}
+function makeNamer(R){
+  const used=new Set();
+  const root=()=>{for(let k=0;k<30;k++){const r=makeRoot(R);if(!used.has(r)){used.add(r);return r}}return makeRoot(R)};
+  const pick=a=>a[R()*a.length|0];
+  return{
+    root,
+    country(){const r=root();const f=pick(['{}ия','{}ия','{}ия','{}ланд','{}хольд','{}ская Земля','{}щина']);return{root:r,name:f.replace('{}',r)}},
+    city(){const r=root();const f=pick(['{}град','{}бург','{}ов','{}ин','{}ск','{}ополь','{}горд','{}стад','{}борг','{}холм','{}ово','{}','{}вель','{}ица']);return f.replace('{}',r)},
+    river(){const a=S1[R()*S1.length|0],b=S2[R()*S2.length|0];const e=pick(['ва','ра','ма','ла','ица','ока','ань','ина']);let s=(isV(a[a.length-1])?a:a+'о')+b;return s+e},
+  };
+}
+const cap1=s=>s[0].toUpperCase()+s.slice(1);
+
+/* ====================== генерация: рельеф ====================== */
+const STAGES=['Поднимаю горы','Размываю склоны','Наливаю моря','Пускаю реки','Сажаю леса','Закладываю города','Делю земли','Тяну дороги','Даю имена','Вывожу чернилами'];
+const BIOME_N=['Море','Озеро','Ледяная пустошь','Тундра','Тайга','Степь','Луга','Лес','Джунгли','Саванна','Пустыня','Болота','Горы'];
+const B={SEA:0,LAKE:1,ICE:2,TUNDRA:3,TAIGA:4,STEPPE:5,GRASS:6,FOREST:7,JUNGLE:8,SAVANNA:9,DESERT:10,SWAMP:11,MOUNT:12};
+const stg=(s,p)=>({s,p});
+
+function* genTerrain(seed,set){
+  const R=rngFor(seed,'terrain');
+  const nC=makeNoise(R),nD=makeNoise(R),nR=makeNoise(R),nM=makeNoise(R),nT=makeNoise(R),nH=makeNoise(R);
+  const ox=R()*100,oy=R()*100;
+  const T={seed};
+  const h=new Float32Array(N);
+  let mn=1e9,mx=-1e9;
+  const mount=set.mount/100;
+  for(let j=0;j<H;j++){
+    for(let i=0;i<W;i++){
+      const u=i/H,v=j/H;
+      let c=fbm(nC,u*1.55+ox,v*1.55+oy,4)*1.15+fbm(nC,u*.7+ox+31,v*.7+oy+17,2)*.75;
+      const ex=Math.min(i,W-1-i)/(W*.11),ey=Math.min(j,H-1-j)/(H*.13);
+      let e=clamp(Math.min(ex,ey),0,1);e=e*e*(3-2*e);
+      c=c*e-(1-e)*1.4;
+      const rn=fbm(nR,u*3.1+ox,v*3.1+oy,4);
+      let r=clamp(1-Math.abs(rn)*2.1,0,1);r=r*r;
+      const mk=clamp((c+.25)/.7,0,1);
+      const val=c+mount*1.0*r*mk+.09*fbm(nD,u*8,v*8,3);
+      h[j*W+i]=val;if(val<mn)mn=val;if(val>mx)mx=val;
+    }
+    if(j%16===15)yield stg(0,j/H);
+  }
+  for(let i=0;i<N;i++)h[i]=(h[i]-mn)/(mx-mn);
+  const land=set.land/100;
+  const level0=quant(h,1-land);
+  // эрозия
+  const count=Math.round(set.erosion/100*N*.55);
+  const inertia=.3,cp=1.6,er=.2,dep=.3,grav=3,evap=.02;
+  for(let n=0;n<count;n++){
+    let x=0,y=0,ok=false;
+    for(let t=0;t<6;t++){x=1+R()*(W-3);y=1+R()*(H-3);if(h[(y|0)*W+(x|0)]>level0){ok=true;break}}
+    if(!ok)continue;
+    let dx=0,dy=0,sp=1,wa=1,sed=0;
+    for(let st=0;st<50;st++){
+      const xi=x|0,yi=y|0;if(xi<1||yi<1||xi>=W-2||yi>=H-2)break;
+      const fx=x-xi,fy=y-yi,id=yi*W+xi;
+      const h00=h[id],h10=h[id+1],h01=h[id+W],h11=h[id+W+1];
+      const gx=(h10-h00)*(1-fy)+(h11-h01)*fy,gy=(h01-h00)*(1-fx)+(h11-h10)*fx;
+      dx=dx*inertia-gx*(1-inertia);dy=dy*inertia-gy*(1-inertia);
+      let len=Math.hypot(dx,dy);
+      if(len<1e-7){const a=R()*6.283;dx=Math.cos(a);dy=Math.sin(a);len=1}
+      dx/=len;dy/=len;
+      const nx=x+dx,ny=y+dy;if(nx<1||ny<1||nx>=W-2||ny>=H-2)break;
+      const hOld=h00*(1-fx)*(1-fy)+h10*fx*(1-fy)+h01*(1-fx)*fy+h11*fx*fy;
+      const xj=nx|0,yj=ny|0,gx2=nx-xj,gy2=ny-yj,i2=yj*W+xj;
+      const hNew=h[i2]*(1-gx2)*(1-gy2)+h[i2+1]*gx2*(1-gy2)+h[i2+W]*(1-gx2)*gy2+h[i2+W+1]*gx2*gy2;
+      const dh=hNew-hOld;
+      const capac=Math.max(-dh,.002)*sp*wa*cp;
+      if(sed>capac||dh>0){
+        const amt=dh>0?Math.min(dh,sed):(sed-capac)*dep;sed-=amt;
+        h[id]+=amt*(1-fx)*(1-fy);h[id+1]+=amt*fx*(1-fy);h[id+W]+=amt*(1-fx)*fy;h[id+W+1]+=amt*fx*fy;
+      }else{
+        const amt=Math.min((capac-sed)*er,-dh);
+        h[id]-=amt*(1-fx)*(1-fy);h[id+1]-=amt*fx*(1-fy);h[id+W]-=amt*(1-fx)*fy;h[id+W+1]-=amt*fx*fy;sed+=amt;
+      }
+      sp=Math.sqrt(Math.max(0,sp*sp-dh*grav));wa*=1-evap;x=nx;y=ny;
+      if(hNew<level0)break;
+    }
+    if(n%2500===0)yield stg(1,n/count);
+  }
+  yield stg(1,1);
+  // уровень моря
+  const sl=quant(h,1-land);
+  T.h=h;T.sl=sl;
+  const ocean=new Uint8Array(N),q=new Int32Array(N);let qh=0,qt=0;
+  for(let i=0;i<W;i++)for(const j of[0,H-1]){const k=j*W+i;if(h[k]<=sl&&!ocean[k]){ocean[k]=1;q[qt++]=k}}
+  for(let j=0;j<H;j++)for(const i of[0,W-1]){const k=j*W+i;if(h[k]<=sl&&!ocean[k]){ocean[k]=1;q[qt++]=k}}
+  while(qh<qt){const c=q[qh++],cx=c%W,cy=(c-cx)/W;
+    for(let d=0;d<4;d++){const nx=cx+D8[d][0],ny=cy+D8[d][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;const k=ny*W+nx;if(!ocean[k]&&h[k]<=sl){ocean[k]=1;q[qt++]=k}}}
+  T.ocean=ocean;
+  // расстояния: от суши (для моря) и от моря (для суши)
+  const dLand=new Int16Array(N).fill(-1),dSea=new Int16Array(N).fill(-1);
+  qh=qt=0;for(let i=0;i<N;i++)if(!ocean[i]){dLand[i]=0;q[qt++]=i}
+  const bfs=(dist)=>{while(qh<qt){const c=q[qh++],cx=c%W,cy=(c-cx)/W;for(let d=0;d<8;d++){const nx=cx+D8[d][0],ny=cy+D8[d][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;const k=ny*W+nx;if(dist[k]<0){dist[k]=dist[c]+1;q[qt++]=k}}}};
+  bfs(dLand);
+  qh=qt=0;for(let i=0;i<N;i++)if(ocean[i]){dSea[i]=0;q[qt++]=i}
+  bfs(dSea);
+  for(let i=0;i<N;i++){if(dLand[i]<0)dLand[i]=99;if(dSea[i]<0)dSea[i]=99}
+  T.dLand=dLand;T.dSea=dSea;
+  yield stg(2,.1);
+  // берег в высоком разрешении
+  const HW=W*2+2,HH=H*2+2;
+  const F=new Float32Array(HW*HH),Lm=new Float32Array(HW*HH);
+  for(let iy=0;iy<HH;iy++){
+    for(let ix=0;ix<HW;ix++){
+      const k=iy*HW+ix;
+      if(ix===0||iy===0||ix===HW-1||iy===HH-1){F[k]=1;Lm[k]=0;continue}
+      const a=ix-1,b=iy-1,cx=(a+.5)/2-.5,cy=(b+.5)/2-.5;
+      const x0=clamp(Math.floor(cx),0,W-2),y0=clamp(Math.floor(cy),0,H-2),fx=clamp(cx-x0,0,1),fy=clamp(cy-y0,0,1);
+      const o=y0*W+x0;
+      const hs=h[o]*(1-fx)*(1-fy)+h[o+1]*fx*(1-fy)+h[o+W]*(1-fx)*fy+h[o+W+1]*fx*fy;
+      const hh=hs+.014*fbm(nH,a*.12,b*.12,3);
+      const sea=hh<=sl&&ocean[(b>>1)*W+(a>>1)];
+      F[k]=sea?(sl-hh+.0004):(hh>sl?sl-hh:-.0004);
+      Lm[k]=F[k]<0?1:0;
+    }
+    if(iy%60===59)yield stg(2,.1+.3*iy/HH);
+  }
+  const hx=g=>M+(g-1+.5)/2;
+  const tfH=(v)=>hx(v);
+  T.coast=pathFrom(contour(F,HW,HH,0),tfH);
+  T.hiF=F;T.HW=HW;T.HH=HH;
+  yield stg(2,.6);
+  boxBlur(Lm,HW,HH,4,3);
+  T.Lb=Lm;
+  const lv=[.4,.27,.17,.09,.04];T.wave=[];
+  for(let i=0;i<lv.length;i++){T.wave.push(pathFrom(contour(Lm,HW,HH,lv[i]),tfH));yield stg(2,.6+.08*(i+1))}
+  // реки
+  const moist=new Float32Array(N),temp=new Float32Array(N);
+  const wind=R()<.5?1:-1,local=new Float32Array(N);
+  for(let j=0;j<H;j++){
+    let w=1,prev=sl;
+    for(let k=0;k<W;k++){
+      const i=wind>0?k:W-1-k,id=j*W+i;
+      if(ocean[id]){w=Math.min(1,w+.14);prev=sl}
+      else{const up=Math.max(0,h[id]-prev);const loss=w*(.016+up*5);w=Math.max(0,w-loss);local[id]=loss;prev=h[id];moist[id]=w}
+    }
+  }
+  const latShift=(R()-.5)*.35,cl=set.climate/100;
+  for(let j=0;j<H;j++)for(let i=0;i<W;i++){
+    const id=j*W+i;
+    const nz=fbm(nM,i/H*4+ox,j/H*4+oy,3)*.5+.5;
+    moist[id]=clamp(.38*moist[id]+.55*Math.min(1,local[id]*7)+.3*(nz-.4)+.22*Math.exp(-dSea[id]/18),0,1);
+    const lat=clamp(.5+(j/H-.5)*.92+latShift,0,1);
+    const base=1-Math.pow(Math.abs(lat*2-1),1.35);
+    const alt=Math.max(0,h[id]-sl)/(1-sl);
+    temp[id]=clamp(base*.78+.1+cl*.3+fbm(nT,i/H*3+ox,j/H*3,2)*.12-alt*.45,0,1);
+  }
+  const filled=new Float32Array(N),dir=new Int32Array(N).fill(-1),vis=new Uint8Array(N),order=new Int32Array(N);let on=0;
+  const heap=makeHeap(N+8);
+  for(let j=0;j<H;j++)for(let i=0;i<W;i++){
+    const id=j*W+i;if(ocean[id])continue;
+    let od=-1;
+    for(let d=0;d<8;d++){const nx=i+D8[d][0],ny=j+D8[d][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;if(ocean[ny*W+nx]){od=ny*W+nx;break}}
+    if(od>=0||i===0||j===0||i===W-1||j===H-1){dir[id]=od;vis[id]=1;filled[id]=h[id];heap.push(id,h[id])}
+  }
+  let pc=0;
+  while(heap.size()>0){
+    const c=heap.pop();order[on++]=c;const cx=c%W,cy=(c-cx)/W;
+    for(let d=0;d<8;d++){const nx=cx+D8[d][0],ny=cy+D8[d][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;const k=ny*W+nx;
+      if(ocean[k]||vis[k])continue;vis[k]=1;filled[k]=Math.max(h[k],filled[c]+1e-5);dir[k]=c;heap.push(k,filled[k])}
+    if(++pc%9000===0)yield stg(3,.2*pc/N);
+  }
+  const acc=new Float32Array(N);
+  for(let i=0;i<N;i++)acc[i]=ocean[i]?0:.6+1.4*moist[i];
+  for(let k=on-1;k>=0;k--){const c=order[k],d=dir[c];if(d>=0&&!ocean[d])acc[d]+=acc[c]}
+  const landMask=new Uint8Array(N);let landN=0;for(let i=0;i<N;i++)if(!ocean[i]){landMask[i]=1;landN++}
+  const thr=Math.max(14,quant(acc,.93,landMask));
+  const lake=new Uint8Array(N);let lakeN=0;
+  for(let i=0;i<N;i++)if(!ocean[i]&&(h[i]<=sl||filled[i]-h[i]>.008)){lake[i]=1;lakeN++}
+  const river=new Uint8Array(N);
+  for(let i=0;i<N;i++)if(!ocean[i]&&!lake[i]&&acc[i]>=thr)river[i]=1;
+  T.acc=acc;T.thr=thr;T.lake=lake;T.river=river;T.dir=dir;T.moist=moist;T.temp=temp;T.landN=landN;
+  yield stg(3,.4);
+  // трассировка рек
+  const hasUp=new Uint8Array(N);
+  for(let i=0;i<N;i++)if(river[i]){const d=dir[i];if(d>=0&&river[d])hasUp[d]=1}
+  const rw=[new Path2D(),new Path2D(),new Path2D(),new Path2D()];
+  const rcls=a=>{const r=a/thr;return r<1.6?0:r<3.5?1:r<8?2:3};
+  const traces=[],seenR=new Uint8Array(N);
+  const jx=i=>((hashStr('x'+i)%1000)/1000-.5)*.36,jy=i=>((hashStr('y'+i)%1000)/1000-.5)*.36;
+  for(let s=0;s<N;s++){
+    if(!river[s]||hasUp[s])continue;
+    const pts=[],cls=[];let c=s,steps=0;
+    for(;;){
+      const cx=c%W,cy=(c-cx)/W;pts.push(M+cx+.5+jx(c),M+cy+.5+jy(c));cls.push(acc[c]);
+      seenR[c]=1;const d=dir[c];
+      if(d<0){break}
+      const dx=d%W,dy=(d-dx)/W;
+      if(ocean[d]){pts.push(M+(cx+dx)/2+.5,M+(cy+dy)/2+.5);cls.push(acc[c]);break}
+      if(lake[d]){pts.push(M+dx+.5,M+dy+.5);cls.push(acc[c]);break}
+      if(!river[d]){break}
+      if(seenR[d]){pts.push(M+dx+.5+jx(d),M+dy+.5+jy(d));cls.push(acc[d]);break}
+      c=d;if(++steps>2000)break;
+    }
+    if(pts.length>=6)traces.push({pts,cls});
+  }
+  for(const tr of traces){
+    const p=tr.pts,n=p.length/2;
+    for(let k=0;k<n-1;k++){
+      const x0=k>0?(p[k*2-2]+p[k*2])/2:p[0],y0=k>0?(p[k*2-1]+p[k*2+1])/2:p[1];
+      const x2=k<n-2?(p[k*2]+p[k*2+2])/2:p[(k+1)*2],y2=k<n-2?(p[k*2+1]+p[k*2+3])/2:p[(k+1)*2+1];
+      const P=rw[rcls(tr.cls[k])];P.moveTo(x0,y0);
+      if(k<n-2)P.quadraticCurveTo(p[k*2],p[k*2+1],x2,y2);else P.lineTo(x2,y2);
+    }
+  }
+  T.riverPaths=rw;T.traces=traces;
+  // озёра
+  if(lakeN>0){
+    const LW=W+2,LH=H+2,lf=new Float32Array(LW*LH);
+    for(let j=0;j<H;j++)for(let i=0;i<W;i++)lf[(j+1)*LW+i+1]=lake[j*W+i];
+    boxBlur(lf,LW,LH,1,2);
+    const polys=contour(lf,LW,LH,.32).map(p=>chaikin(p,2));
+    T.lakePath=pathFrom(polys,(v)=>M+v-.5);
+  }else T.lakePath=null;
+  yield stg(3,1);
+  // биомы
+  const biome=new Uint8Array(N);
+  const mtTh=quant(h,1-(.03+.2*mount),landMask),hillTh=quant(h,1-(.12+.3*mount),landMask);
+  T.mtTh=mtTh;T.hillTh=hillTh;
+  for(let i=0;i<N;i++){
+    if(ocean[i]){biome[i]=B.SEA;continue}
+    if(lake[i]){biome[i]=B.LAKE;continue}
+    const t=temp[i],m=moist[i]+(river[i]?.12:0);let b;
+    if(h[i]>=mtTh)b=B.MOUNT;
+    else if(t<.14)b=B.ICE;
+    else if(t<.3)b=m>.42?B.TAIGA:B.TUNDRA;
+    else if(t<.58)b=m<.27?B.STEPPE:m<.5?B.GRASS:B.FOREST;
+    else b=m<.2?B.DESERT:m<.38?B.SAVANNA:m<.64?B.GRASS:B.JUNGLE;
+    if(b!==B.MOUNT&&h[i]-sl<.05*(1-sl)&&m>.62&&t>.35&&dSea[i]<=7)b=B.SWAMP;
+    biome[i]=b;
+  }
+  T.biome=biome;
+  yield stg(4,1);
+  return T;
+}
+const sigOf=a=>{let s=0;for(let i=0;i<a.length;i+=7)s=(s*31+(typeof a[i]==='number'?Math.round(a[i]*1e4):0))>>>0;return s};
+
+/* ====================== генерация: общество ====================== */
+const ROAD_COST_MOUNT=6;
+function* genSociety(T,set){
+  const seed=T.seed,R=rngFor(seed,'soc'+set.countries+'_'+set.cities);
+  const {h,sl,ocean,lake,river,acc,thr,biome,dSea,dLand}=T;
+  const S={};
+  const landHi=(x,y)=>{ // x,y в мировых координатах
+    const gx=Math.round((x-M)*2-.5)+1,gy=Math.round((y-M)*2-.5)+1;
+    if(gx<0||gy<0||gx>=T.HW||gy>=T.HH)return false;
+    return T.hiF[gy*T.HW+gx]<0;
+  };
+  S.landHi=landHi;
+  const fert=[0,0,0,.15,.45,.6,.95,.9,.55,.7,.15,.3,0];
+  const cand=[];
+  for(let j=2;j<H-2;j++)for(let i=2;i<W-2;i++){
+    const id=j*W+i;if(ocean[id]||lake[id])continue;const b=biome[id];if(b===B.MOUNT||b===B.ICE)continue;
+    let s=fert[b];
+    const coastal=dSea[id]<=1;
+    if(river[id]||acc[id]>=thr*.5)s+=.5;
+    if(coastal){s+=.3;let on=0;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)if(ocean[(j+dy)*W+i+dx])on++;if(on>=6&&on<=15)s+=.55;if(river[id]||acc[id]>=thr*.8)s+=.7}
+    s+=.35*R();
+    const sl2=Math.abs(h[id+1]-h[id-1])+Math.abs(h[id+W]-h[id-W]);s-=sl2*6;
+    if(h[id]>T.hillTh)s-=.3;
+    cand.push([s,id]);
+  }
+  cand.sort((a,b)=>b[0]-a[0]);
+  yield stg(5,.3);
+  const want=set.cities,dmin=clamp(Math.sqrt(T.landN/want)*.62,4,14);
+  const cities=[];
+  for(const [s,id] of cand){
+    if(cities.length>=want)break;
+    const i=id%W,j=(id-i)/W;
+    const x=M+i+.5+(R()-.5)*.5,y=M+j+.5+(R()-.5)*.5;
+    if(!landHi(x,y)||!landHi(x+.5,y)||!landHi(x-.5,y))continue;
+    let ok=true;for(const c of cities){if(Math.hypot(c.x-x,c.y-y)<dmin){ok=false;break}}
+    if(ok)cities.push({x,y,i,j,id,score:s,cap:false});
+  }
+  if(!cities.length){S.cities=[];S.countries=[];S.roads=new Path2D();return S}
+  const nc=Math.min(set.countries,cities.length);
+  const caps=[cities.reduce((a,b)=>a.score>b.score?a:b)];caps[0].cap=true;
+  while(caps.length<nc){
+    let best=null,bv=-1;
+    for(const c of cities){if(c.cap)continue;let d=1e9;for(const k of caps)d=Math.min(d,Math.hypot(k.x-c.x,k.y-c.y));const v=d*(.6+.4*Math.min(1,c.score/2));if(v>bv){bv=v;best=c}}
+    best.cap=true;caps.push(best);
+  }
+  yield stg(5,1);
+  // рост государств (Дейкстра по стоимости)
+  const owner=new Int8Array(N).fill(-1),cost=new Float32Array(N).fill(1e9);
+  const heap=makeHeap(N*6),jit=new Float32Array(N);
+  const nN=makeNoise(R);for(let i=0;i<N;i++)jit[i]=.75+.5*(nN((i%W)*.17,Math.floor(i/W)*.17)*.5+.5);
+  caps.forEach((c,k)=>{owner[c.id]=k;cost[c.id]=0;heap.push(c.id,0)});
+  let pops=0;
+  while(heap.size()>0){
+    const c=heap.pop();const cx=c%W,cy=(c-cx)/W;
+    if(++pops%8000===0)yield stg(6,Math.min(.95,pops/(N*1.4)));
+    for(let d=0;d<8;d++){
+      const nx=cx+D8[d][0],ny=cy+D8[d][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;const k=ny*W+nx;
+      let st;
+      if(ocean[k])st=4;else if(lake[k])st=1.5;
+      else{st=1+34*Math.abs(h[k]-h[c])+(biome[k]===B.MOUNT?3:0)+(river[k]?.8:0)+((biome[k]===B.DESERT||biome[k]===B.ICE)?.8:0)}
+      st*=jit[k]*(d>=4?1.414:1);
+      const nc2=cost[c]+st;
+      if(nc2<cost[k]){cost[k]=nc2;owner[k]=owner[c];heap.push(k,nc2)}
+    }
+  }
+  S.owner=owner;
+  const countries=caps.map((c,k)=>({k,cap:c,cities:0,area:0}));
+  for(const c of cities){c.country=owner[c.id]}
+  let totalLand=0;
+  for(let i=0;i<N;i++)if(!ocean[i]&&!lake[i]&&owner[i]>=0){countries[owner[i]].area++;totalLand++}
+  for(const c of cities)if(c.country>=0)countries[c.country].cities++;
+  S.countries=countries;S.totalLand=totalLand;
+  // границы: контур сглаженной маски страны
+  const PAL=['#c7604f','#6f9a5b','#d9a43e','#4f86a3','#9b6aa0','#c98a52','#5aa08f','#b5527a','#8c8f3f','#6a74b8','#b3693f','#4c8a5e'];
+  const LW=W+2,LH=H+2;
+  for(const ct of countries){
+    const f=new Float32Array(LW*LH);
+    for(let j=0;j<H;j++)for(let i=0;i<W;i++)if(owner[j*W+i]===ct.k)f[(j+1)*LW+i+1]=1;
+    boxBlur(f,LW,LH,1,2);
+    const polys=contour(f,LW,LH,.5).map(p=>chaikin(p,2));
+    ct.path=pathFrom(polys,(v)=>M+v-.5);
+    ct.color=PAL[ct.k%PAL.length];
+    yield stg(6,.95+.05*ct.k/countries.length);
+  }
+  // дороги: A*
+  const roadPolys=[];
+  const edges=new Map();
+  const addE=(a,b)=>{if(a===b)return;const k=a<b?a*1000+b:b*1000+a;edges.set(k,[a,b])};
+  for(const ct of countries){
+    const cs=cities.map((c,i)=>i).filter(i=>cities[i].country===ct.k);
+    if(cs.length<2)continue;
+    const inT=new Set([cs[0]]);
+    while(inT.size<cs.length){
+      let bd=1e9,ba=-1,bb=-1;
+      for(const a of inT)for(const b of cs){if(inT.has(b))continue;const d=Math.hypot(cities[a].x-cities[b].x,cities[a].y-cities[b].y);if(d<bd){bd=d;ba=a;bb=b}}
+      inT.add(bb);addE(ba,bb);
+    }
+  }
+  for(let a=0;a<cities.length;a++){
+    let bd=1e9,bb=-1;
+    for(let b=0;b<cities.length;b++){if(a===b||cities[a].country===cities[b].country)continue;const d=Math.hypot(cities[a].x-cities[b].x,cities[a].y-cities[b].y);if(d<bd){bd=d;bb=b}}
+    if(bb>=0&&bd<dmin*3.2)addE(a,bb);
+  }
+  const roadUse=new Uint8Array(N),g=new Float32Array(N),par=new Int32Array(N),ah=makeHeap(N*6);
+  let ei=0;
+  for(const [a,b] of edges.values()){
+    const A=cities[a].id,Bc=cities[b].id,bx=Bc%W,by=(Bc-bx)/W;
+    g.fill(1e9);ah.clear();g[A]=0;par[A]=-1;ah.push(A,0);let found=false,it=0;
+    while(ah.size()>0){
+      const c=ah.pop();if(c===Bc){found=true;break}
+      const cx=c%W,cy=(c-cx)/W;
+      for(let d=0;d<8;d++){
+        const nx=cx+D8[d][0],ny=cy+D8[d][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;const k=ny*W+nx;
+        if(ocean[k]||lake[k])continue;
+        let st=1+30*Math.abs(h[k]-h[c])+(biome[k]===B.MOUNT?ROAD_COST_MOUNT:0)+(river[k]?4:0)+(biome[k]===B.SWAMP?2:0);
+        if(roadUse[k])st*=.35;
+        st*=(d>=4?1.414:1);
+        const ng=g[c]+st;
+        if(ng<g[k]){g[k]=ng;par[k]=c;ah.push(k,ng+Math.hypot(nx-bx,ny-by)*.9)}
+      }
+      if(++it>60000)break;
+    }
+    if(found){
+      const pts=[];let c=Bc;
+      while(c>=0){const cx=c%W,cy=(c-cx)/W;roadUse[c]=1;pts.push(M+cx+.5,M+cy+.5);c=par[c]}
+      pts[0]=cities[b].x;pts[1]=cities[b].y;pts[pts.length-2]=cities[a].x;pts[pts.length-1]=cities[a].y;
+      roadPolys.push(chaikin(pts,2));
+    }
+    if(++ei%3===0)yield stg(7,ei/edges.size);
+  }
+  S.roads=pathFrom(roadPolys,v=>v,false);
+  yield stg(7,1);
+  // города: размеры и свойства
+  const scs=cities.map(c=>c.score).sort((a,b)=>a-b);
+  for(const c of cities){
+    const r=scs.indexOf(c.score)/scs.length;
+    c.size=c.cap?3:r>.7?2:r>.35?1:0;
+    c.coastal=dSea[c.id]<=1;c.river=acc[c.id]>=thr*.4;c.biome=biome[c.id];c.mount=h[c.id]>T.hillTh;
+  }
+  S.cities=cities;S.dmin=dmin;
+  // значки рельефа
+  const ic={mx:[],hx:[],tx:[]};
+  const grid={m:new Int32Array(N).fill(-1),t:new Int32Array(N).fill(-1)};
+  const near=(gr,arr,x,y,r)=>{const ci=Math.floor(x-M),cj=Math.floor(y-M);for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const ii=ci+dx,jj=cj+dy;if(ii<0||jj<0||ii>=W||jj>=H)continue;const e=gr[jj*W+ii];if(e>=0&&Math.hypot(arr[e][0]-x,arr[e][1]-y)<r)return true}return false};
+  const ord=[];for(let i=0;i<N;i++)if(!ocean[i]&&!lake[i])ord.push(i);
+  for(let i=ord.length-1;i>0;i--){const j=R()*(i+1)|0;const t=ord[i];ord[i]=ord[j];ord[j]=t}
+  const nearCity=(x,y,r)=>{for(const c of cities)if(Math.abs(c.x-x)<r&&Math.abs(c.y-y)<r&&Math.hypot(c.x-x,c.y-y)<r)return true;return false};
+  const mArr=[],tArr=[];
+  let cnt=0;
+  for(const id of ord){
+    const i=id%W,j=(id-i)/W,b=biome[id];
+    const x=M+i+.2+R()*.6,y=M+j+.35+R()*.6;
+    if(++cnt%6000===0)yield stg(8,.2*cnt/ord.length);
+    if(b===B.MOUNT||h[id]>=T.hillTh){
+      if(dSea[id]<2||river[id]&&b!==B.MOUNT)continue;
+      const mt=b===B.MOUNT;
+      if(R()>(mt?.92:.45))continue;
+      const sp=mt?1.5:1.6;
+      if(near(grid.m,mArr,x,y,sp)||nearCity(x,y,2))continue;
+      if(!landHi(x,y))continue;
+      const k=(h[id]-T.hillTh)/(1-T.hillTh);
+      mArr.push([x,y,mt?1.15+1.2*clamp((h[id]-T.mtTh)/(1-T.mtTh),0,1)+R()*.35:.8+R()*.4,mt?1:0,R(),T.temp[id]<.3?1:0]);
+      grid.m[(Math.floor(y-M))*W+Math.floor(x-M)]=mArr.length-1;
+    }else{
+      if(dSea[id]<2||river[id])continue;
+      let p=0,ty=0;
+      if(b===B.FOREST){p=.6;ty=0}else if(b===B.JUNGLE){p=.8;ty=1}else if(b===B.TAIGA){p=.65;ty=2}else if(b===B.SWAMP){p=.35;ty=3}else if(b===B.DESERT){p=.2;ty=4}else if(b===B.STEPPE||b===B.SAVANNA||b===B.TUNDRA){p=.13;ty=5}else continue;
+      if(R()>p)continue;
+      if(near(grid.t,tArr,x,y,1.45)||nearCity(x,y,1.6))continue;
+      if(!landHi(x,y))continue;
+      tArr.push([x,y,.8+R()*.4,ty,R()]);
+      grid.t[(Math.floor(y-M))*W+Math.floor(x-M)]=tArr.length-1;
+    }
+  }
+  mArr.sort((a,b)=>a[1]-b[1]);tArr.sort((a,b)=>a[1]-b[1]);
+  S.mIcons=mArr;S.tIcons=tArr;
+  yield stg(8,.4);
+  // имена
+  const NR=rngFor(seed,'names');const nm=makeNamer(NR);
+  const worldRoot=nm.root();S.worldRoot=worldRoot;
+  for(const ct of countries){const o=nm.country();ct.name=o.name;ct.root=o.root}
+  for(const c of cities)c.name=nm.city();
+  const seen=new Set();for(const c of cities){let n=c.name,t=0;while(seen.has(n)&&t++<5)n=nm.city();c.name=n;seen.add(n)}
+  if(seed.trim().toLowerCase()==='атлантида'&&countries.length){countries[0].name='Атлантида';S.worldRoot='Атлант'}
+  S.riverNames=T.traces.map(()=>null);
+  S.nm=nm;S.NR=NR;
+  yield stg(8,1);
+  return S;
+}
+
+/* ====================== подписи и раскладка ====================== */
+const mctx=document.createElement('canvas').getContext('2d');
+function mw(str,fs,italic,ls){mctx.font=(italic?'italic ':'')+(fs*20)+'px '+FONT;return mctx.measureText(str).width/20+(ls||0)*(str.length-1)}
+function layout(T,S,seed){
+  const R=rngFor(seed,'layout');
+  const L={labels:[],rects:[],deco:[]};
+  const rects=L.rects;
+  const hit=(r)=>{for(const q of rects)if(r[0]<q[2]&&r[2]>q[0]&&r[1]<q[3]&&r[3]>q[1])return true;return false};
+  const {ocean,dLand,dSea,biome}=T;
+  // картуш
+  const cw=66,ch=36,cands=[[M+2,M+2],[M+W-cw-2,M+2],[M+2,M+H-ch-2],[M+W-cw-2,M+H-ch-2]];
+  let best=null,bv=1e9;
+  cands.forEach((p,idx)=>{let n=0;for(let j=p[1]-M;j<p[1]-M+ch;j+=2)for(let i=p[0]-M;i<p[0]-M+cw;i+=2)if(!ocean[Math.floor(j)*W+Math.floor(i)])n++;n+=idx*.01;if(n<bv){bv=n;best=p}});
+  L.cart={x:best[0],y:best[1],w:cw,h:ch};rects.push([best[0]-1,best[1]-1,best[0]+cw+1,best[1]+ch+1]);
+  // символы городов
+  const cs=S.cities||[];
+  const cityRects=cs.map(c=>[c.x-1,c.y-1.1,c.x+1,c.y+.8]);
+  for(const r of cityRects)rects.push(r);
+  // страны
+  for(const ct of S.countries||[]){
+    const inC=new Uint8Array(N);let n=0,sx=0,sy=0,sxx=0,syy=0,sxy=0;
+    for(let i=0;i<N;i++)if(S.owner[i]===ct.k&&!ocean[i]&&!T.lake[i]){inC[i]=1;n++}
+    if(n<12)continue;
+    const dist=new Float32Array(N);
+    for(let i=0;i<N;i++)dist[i]=inC[i]?1e3:0;
+    for(let j=0;j<H;j++)for(let i=0;i<W;i++){const k=j*W+i;if(!inC[k])continue;let v=dist[k];
+      if(i>0)v=Math.min(v,dist[k-1]+1);if(j>0)v=Math.min(v,dist[k-W]+1);if(i>0&&j>0)v=Math.min(v,dist[k-W-1]+1.414);if(i<W-1&&j>0)v=Math.min(v,dist[k-W+1]+1.414);
+      if(i===0||j===0||i===W-1||j===H-1)v=1;dist[k]=v}
+    for(let j=H-1;j>=0;j--)for(let i=W-1;i>=0;i--){const k=j*W+i;if(!inC[k])continue;let v=dist[k];
+      if(i<W-1)v=Math.min(v,dist[k+1]+1);if(j<H-1)v=Math.min(v,dist[k+W]+1);if(i<W-1&&j<H-1)v=Math.min(v,dist[k+W+1]+1.414);if(i>0&&j<H-1)v=Math.min(v,dist[k+W-1]+1.414);dist[k]=v}
+    let bi=-1,bd=-1;
+    for(let i=0;i<N;i++)if(inC[i]){const d=dist[i]+R()*.2;if(d>bd){bd=d;bi=i}}
+    for(let i=0;i<N;i++)if(inC[i]){const x=i%W,y=(i-x)/W;sx+=x;sy+=y}
+    const mx=sx/n,my=sy/n;
+    for(let i=0;i<N;i++)if(inC[i]){const x=i%W-mx,y=Math.floor(i/W)-my;sxx+=x*x;syy+=y*y;sxy+=x*y}
+    let th=.5*Math.atan2(2*sxy,sxx-syy);if(Math.abs(th)>.6)th=0;
+    const cx=bi%W+.5,cy=Math.floor(bi/W)+.5,ux=Math.cos(th),uy=Math.sin(th);
+    const ray=(sg)=>{let t=0;for(;t<80;t+=.5){const x=Math.floor(cx+ux*sg*t),y=Math.floor(cy+uy*sg*t);if(x<0||y<0||x>=W||y>=H||!inC[y*W+x])break}return t};
+    const lp=ray(1),ln=ray(-1),len=lp+ln;
+    const mid=[cx+ux*(lp-ln)/2,cy+uy*(lp-ln)/2];
+    const text=ct.name.toUpperCase();
+    const w1=mw(text,1,false,0),ratio=.34;
+    let fs=clamp(len*.86/(w1+ratio*(text.length-1)),2.1,6.6);
+    while(fs>2.1&&mw(text,fs,false,ratio*fs)>len*.98)fs-=.2;
+    const ls=ratio*fs,wd=mw(text,fs,false,ls);
+    let chosen=null;
+    for(const off of[0,2.5,-2.5,5,-5]){
+      const x=M+mid[0]-uy*off,y=M+mid[1]+ux*off;
+      const hw=Math.abs(ux)*wd/2+Math.abs(uy)*fs/2,hh=Math.abs(uy)*wd/2+Math.abs(ux)*fs/2;
+      const r=[x-hw,y-hh,x+hw,y+hh];
+      let bad=false;for(const q of cityRects)if(r[0]<q[2]&&r[2]>q[0]&&r[1]<q[3]&&r[3]>q[1]){bad=true;break}
+      if(!bad&&!(r[0]<L.cart.x+cw&&r[2]>L.cart.x&&r[1]<L.cart.y+ch&&r[3]>L.cart.y)){chosen={x,y,r};break}
+      if(!chosen&&off===5)chosen={x:M+mid[0],y:M+mid[1],r};
+    }
+    if(!chosen)chosen={x:M+mid[0],y:M+mid[1],r:[0,0,0,0]};
+    L.labels.push({t:text,x:chosen.x,y:chosen.y,fs,rot:th,ls,kind:'country',k:ct.k});
+    rects.push(chosen.r);
+  }
+  // города
+  const order=cs.slice().sort((a,b)=>b.size-a.size);
+  for(const c of order){
+    const fs=[2.2,2.4,2.7,3.1][c.size],wd=mw(c.name,fs,false,0);
+    const sides=[[1.2,.7,'l'],[-1.2-wd,.7,'l'],[-wd/2,-1.3,'l'],[-wd/2,2.1,'l']];
+    const tryS=c.x>M+W*.6?[sides[1],sides[0],sides[2],sides[3]]:sides;
+    for(const s of tryS){
+      const x=c.x+s[0],y=c.y+s[1];const r=[x-.2,y-fs*.85,x+wd+.2,y+fs*.25];
+      if(r[0]<M+1||r[2]>M+W-1||r[1]<M+1||r[3]>M+H-1)continue;
+      if(hit(r))continue;
+      L.labels.push({t:c.name,x,y,fs,rot:0,ls:0,kind:'city',size:c.size,left:true,cap:c.cap});rects.push(r);break;
+    }
+  }
+  // хребты
+  {
+    const mt=new Uint8Array(N),seen=new Uint8Array(N);
+    for(let i=0;i<N;i++)if(biome[i]===B.MOUNT)mt[i]=1;
+    for(let s=0;s<N;s++){
+      if(!mt[s]||seen[s])continue;
+      const comp=[s];seen[s]=1;
+      for(let q=0;q<comp.length;q++){const c=comp[q],cx=c%W,cy=(c-cx)/W;for(let d=0;d<8;d++){const nx=cx+D8[d][0],ny=cy+D8[d][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;const k=ny*W+nx;if(mt[k]&&!seen[k]){seen[k]=1;comp.push(k)}}}
+      if(comp.length<35)continue;
+      let sx=0,sy=0;for(const c of comp){sx+=c%W;sy+=Math.floor(c/W)}
+      const mx=sx/comp.length,my=sy/comp.length;let sxx=0,syy=0,sxy=0;
+      for(const c of comp){const x=c%W-mx,y=Math.floor(c/W)-my;sxx+=x*x;syy+=y*y;sxy+=x*y}
+      let th=.5*Math.atan2(2*sxy,sxx-syy);const l1=Math.sqrt(Math.max(sxx,syy)/comp.length);
+      if(Math.abs(th)>.7)th=0;
+      const text=cap1(S.nm.root())+'ские горы',len=l1*3.2;
+      let fs=clamp(len*.9/(mw(text,1,true,0)+.2*text.length),0,3.6);if(fs<2.1)continue;
+      const wd=mw(text,fs,true,.2*fs);
+      const ux=Math.cos(th),uy=Math.sin(th),x=M+mx+.5,y=M+my+.5-1.6;
+      const hw=Math.abs(ux)*wd/2+Math.abs(uy)*fs/2,hh=Math.abs(uy)*wd/2+Math.abs(ux)*fs/2;
+      const r=[x-hw,y-hh,x+hw,y+hh];if(hit(r))continue;
+      L.labels.push({t:text,x,y,fs,rot:th,ls:.2*fs,kind:'range',italic:true});rects.push(r);
+    }
+  }
+  // реки
+  {
+    const trs=T.traces.map((t,i)=>({t,i,m:Math.max(...t.cls),n:t.pts.length/2})).filter(o=>o.n>=14).sort((a,b)=>b.m-a.m).slice(0,3);
+    for(const o of trs){
+      const p=o.t.pts,k=Math.floor(o.n*.45),x0=p[k*2],y0=p[k*2+1],x1=p[(k+3)*2],y1=p[(k+3)*2+1];
+      let th=Math.atan2(y1-y0,x1-x0);if(th>Math.PI/2)th-=Math.PI;if(th<-Math.PI/2)th+=Math.PI;if(Math.abs(th)>.9)continue;
+      const text='р. '+cap1(S.nm.river()),fs=1.85,wd=mw(text,fs,true,0);
+      const r=[x0-wd/2,y0-fs-1,x0+wd/2,y0+1];if(hit(r))continue;
+      L.labels.push({t:text,x:x0,y:y0-.8,fs,rot:th,ls:0,kind:'river',italic:true});rects.push(r);
+    }
+  }
+  // моря
+  const seas=[];
+  {
+    const idx=[];for(let i=0;i<N;i++)if(ocean[i]&&dLand[i]>=3)idx.push(i);
+    idx.sort((a,b)=>dLand[b]-dLand[a]);
+    const picks=[];
+    for(const id of idx){
+      if(picks.length>=5)break;
+      const x=id%W+.5,y=Math.floor(id/W)+.5;
+      let ok=true;for(const p of picks)if(Math.hypot(p[0]-x,p[1]-y)<30){ok=false;break}
+      if(ok)picks.push([x,y,dLand[id]]);
+    }
+    let first=true;
+    for(const [x,y,d] of picks){
+      let kind;
+      if(first&&d>=11)kind='океан';else if(d>=6)kind='море';else kind='залив';
+      const root=cap1(S.nm.root());
+      let text=kind==='океан'?root+'ский океан':kind==='море'?root+'ское море':'Залив '+root+'а';
+      let fs=clamp(d*.36,2.5,4.7),wd,ok=false;
+      for(let t=0;t<4;t++){
+        wd=mw(text,fs,true,.28*fs);
+        let all=true;
+        for(let q=0;q<=8;q++){const xx=Math.floor(x-wd/2+wd*q/8),yy=Math.floor(y);if(xx<0||xx>=W||!ocean[yy*W+xx]){all=false;break}}
+        const r=[M+x-wd/2,M+y-fs,M+x+wd/2,M+y+fs*.4];
+        if(all&&!hit(r)){ok=true;L.labels.push({t:text,x:M+x,y:M+y,fs,rot:0,ls:.28*fs,kind:'sea',italic:true});rects.push(r);seas.push([x,y]);break}
+        fs*=.85;if(fs<2.2)break;
+      }
+      first=false;
+    }
+  }
+  // украшения в море
+  const seaSpot=(need,rw,rh)=>{
+    const idx=[];for(let k=0;k<400;k++){const i=3+R()*(W-6)|0,j=3+R()*(H-6)|0,id=j*W+i;if(ocean[id]&&dLand[id]>=need)idx.push(id)}
+    idx.sort((a,b)=>dLand[b]-dLand[a]);
+    for(const id of idx){const x=M+id%W+.5,y=M+Math.floor(id/W)+.5;const r=[x-rw,y-rh,x+rw,y+rh];if(r[0]<M+1||r[2]>M+W-1||r[1]<M+1||r[3]>M+H-1)continue;if(!hit(r)){rects.push(r);return{x,y}}}
+    return null;
+  };
+  const rose=seaSpot(7,8.5,8.5);if(rose)L.deco.push({t:'rose',x:rose.x,y:rose.y,r:6.2});
+  const rose2=seaSpot(6,7.5,7.5);if(rose2&&Math.hypot(rose2.x-(rose?rose.x:-99),rose2.y-(rose?rose.y:-99))>70)L.deco.push({t:'rose',x:rose2.x,y:rose2.y,r:4.6});
+  const mon=seaSpot(5,6,3.5);if(mon)L.deco.push({t:'monster',x:mon.x,y:mon.y});
+  const isl=seaSpot(5,7,5);if(isl)L.deco.push({t:'island',x:isl.x,y:isl.y,seed:R()});
+  const nship=3+(R()*2|0);
+  for(let i=0;i<nship;i++){const s=seaSpot(4,3.5,2.8);if(s)L.deco.push({t:'ship',x:s.x,y:s.y,flip:R()<.5?-1:1,sz:1.5+R()*.4})}
+  // очистка значков под подписями
+  {
+    const boxes=[];
+    for(const l of L.labels){
+      if(l.kind==='sea')continue;
+      const wd=mw(l.t,l.fs,!!l.italic,l.ls||0),pad=.5;
+      if(l.kind==='city'){boxes.push([l.x-pad,l.y-l.fs*.85-pad,l.x+wd+pad,l.y+l.fs*.3+pad]);continue}
+      const ux=Math.cos(l.rot||0),uy=Math.sin(l.rot||0);
+      const hw=Math.abs(ux)*wd/2+Math.abs(uy)*l.fs/2+pad,hh=Math.abs(uy)*wd/2+Math.abs(ux)*l.fs/2+pad;
+      boxes.push([l.x-hw,l.y-hh-l.fs*.25,l.x+hw,l.y+hh]);
+      l.box=boxes[boxes.length-1];
+    }
+    const inAny=(x,y,r)=>{for(const b of boxes)if(x>b[0]-r&&x<b[2]+r&&y>b[1]-r&&y<b[3]+r+.6)return true;return false};
+    S.tIcons=S.tIcons.filter(t=>!inAny(t[0],t[1],.5));
+    S.mIcons=S.mIcons.filter(m=>m.__keep||!inAny(m[0],m[1]-.4,.8));
+  }
+  // подзаголовки
+  L.title={top:'Новая и достоверная карта',mid:'Земли '+S.worldRoot+'ские',s1:'с показанием государств, городов, рек и дорог',s2:'составлена по рассказам мореходов, в лето '+(1601+(R()*98|0))+'-е'};
+  // глубины для морской карты
+  L.sound=[];
+  {
+    const Lb=T.Lb,HW=T.HW;let tries=0;
+    while(L.sound.length<70&&tries++<900){
+      const x=M+2+R()*(W-4),y=M+2+R()*(H-4);
+      const gx=Math.round((x-M)*2-.5)+1,gy=Math.round((y-M)*2-.5)+1;const v=Lb[gy*HW+gx];
+      if(v<.03||v>.33||T.hiF[gy*HW+gx]<=0)continue;
+      let ok=true;for(const s of L.sound)if(Math.hypot(s[0]-x,s[1]-y)<3.4){ok=false;break}
+      if(!ok)continue;
+      if(x>L.cart.x-1&&x<L.cart.x+cw+1&&y>L.cart.y-1&&y<L.cart.y+ch+1)continue;
+      L.sound.push([x,y,Math.round(2+(.33-v)*55+R()*3)]);
+    }
+  }
+  return L;
+}
+
+/* ====================== города: справка ====================== */
+const TRADE={coast:['солёной рыбой','корабельным лесом','китовым жиром','янтарём','канатами и смолой','морской солью'],river:['зерном','льном','воском','речным жемчугом','мельничной мукой','пивом'],mount:['железом','серебром','сыром','шерстью','точильным камнем','горными травами'],desert:['солью','финиками','коврами','красителями','верблюжьей шерстью'],forest:['мехами','мёдом','смолой','дубовыми бочками','сушёными грибами'],steppe:['лошадьми','кожей','войлоком','вяленой бараниной'],cold:['мехом и моржовой костью','вяленой рыбой','оленьими шкурами'],gen:['тканями','глиняной посудой','вином','хмелем','стеклом','часами']};
+const QUIRK=['Славится ярмаркой в день первого снега.','Здесь пекут хлеб с тмином, который не черствеет неделю.','В городе четыре моста и ни одного фонаря.','Колокол на ратуше звонит на три минуты позже положенного.','Жители уверяют, что у них самые высокие гуси.','Каждый год в начале лета здесь сжигают чучело зимы.','Городская стена достроена только наполовину — с 1503 года.','Лучший сыр в округе, но сами горожане предпочитают пиво.','С местной башни, по слухам, виден край карты.','Цех часовщиков здесь старше самого города.','На главной площади запрещено свистеть после заката.','Говорят, под ратушей спрятан ещё один город, поменьше.'];
+function cityInfo(c,S,seed){
+  const R=rngFor(seed,'city'+c.id);const pick=a=>a[R()*a.length|0];
+  const base=[[380,1700],[1800,6000],[6000,18000],[18000,62000]][c.size];
+  let pop=Math.round((base[0]+(base[1]-base[0])*R())/(c.size<2?50:100))*(c.size<2?50:100);
+  const trade=[];
+  if(c.coastal)trade.push(pick(TRADE.coast));
+  if(c.river)trade.push(pick(TRADE.river));
+  if(c.mount)trade.push(pick(TRADE.mount));
+  const b=c.biome;
+  if(b===B.DESERT||b===B.SAVANNA)trade.push(pick(TRADE.desert));
+  if(b===B.FOREST||b===B.JUNGLE||b===B.TAIGA)trade.push(pick(TRADE.forest));
+  if(b===B.STEPPE||b===B.GRASS)trade.push(pick(TRADE.steppe));
+  if(b===B.TUNDRA||b===B.ICE)trade.push(pick(TRADE.cold));
+  if(trade.length<2)trade.push(pick(TRADE.gen));
+  const t=[...new Set(trade)].slice(0,2).join(' и ');
+  const ct=S.countries[c.country];
+  let st=c.cap?'Столица, '+(ct?ct.name:''):c.size>=2?'Большой город':c.size===1?'Город':'Селение';
+  if(!c.cap){if(c.coastal)st+=', порт';else if(c.river)st+=' на реке';else if(c.mount)st+=' в горах'}
+  return{name:c.name,status:st,country:ct?ct.name:'—',pop:'около '+pop.toLocaleString('ru-RU').replace(/\s/g,'\u00a0')+' жителей',year:(700+(R()*820|0))+' год',trade:t,quirk:pick(QUIRK)};
+}
+
+/* ====================== стили и отрисовка ====================== */
+const STYLES={
+  atlas:{paper:'#e9d6a3',land:'#f1e3bb',sea:'#c9d1b6',shallow:null,ink:'#33220f',wave:'#6d6a4c',river:'#476b78',road:'#6b4a2a',biomeA:.42,country:true,hatch:false,rhumb:false,vig:.34,stain:.1,paperBand:'#e3cf9a',cap:'#7a1f12'},
+  chart:{paper:'#efe7cb',land:'#f6eed2',sea:'#bcd6d2',shallow:'#d4e7de',ink:'#1f2a30',wave:'#3b6f78',river:'#2c6fa0',road:'#7a3322',biomeA:.16,country:false,hatch:false,rhumb:true,vig:.2,stain:.06,paperBand:'#e6dcba',cap:'#a3281f'},
+  engr:{paper:'#f2efe5',land:'#f8f6ee',sea:'#f2efe5',shallow:null,ink:'#15130f',wave:'#15130f',river:'#15130f',road:'#15130f',biomeA:0,country:false,hatch:true,rhumb:false,vig:.1,stain:.03,paperBand:'#e8e4d6',cap:'#15130f'}
+};
+const BCOL=['','','#f4f1e6','#cfc9a8','#98a98a','#d8c98a','#b9c98a','#8fae78','#6f9a6a','#d6b872','#e6cd8f','#9aa98f','#b9a98e'];
+let paperTile=null;
+function getPaperTile(){
+  if(paperTile)return paperTile;
+  const c=document.createElement('canvas');c.width=c.height=220;const x=c.getContext('2d'),im=x.createImageData(220,220);
+  const r=mulberry(77);
+  for(let i=0;i<220*220;i++){let v=236+r()*19;if(r()<.004)v=165+r()*40;im.data[i*4]=v;im.data[i*4+1]=v*.975;im.data[i*4+2]=v*.93;im.data[i*4+3]=255}
+  x.putImageData(im,0,0);paperTile=c;return c;
+}
+function biomeCanvas(T,st){
+  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d'),im=x.createImageData(W,H);
+  const col=BCOL.map(s=>s?[parseInt(s.slice(1,3),16),parseInt(s.slice(3,5),16),parseInt(s.slice(5,7),16)]:null);
+  const px=new Int16Array(N).fill(-1);
+  for(let i=0;i<N;i++){const b=T.biome[i];px[i]=(b===B.SEA)?-1:(b===B.LAKE?B.GRASS:b)}
+  for(let pass=0;pass<3;pass++){
+    const np=px.slice();
+    for(let j=0;j<H;j++)for(let i=0;i<W;i++){const k=j*W+i;if(px[k]>=0)continue;
+      for(let d=0;d<8;d++){const nx=i+D8[d][0],ny=j+D8[d][1];if(nx<0||ny<0||nx>=W||ny>=H)continue;const v=px[ny*W+nx];if(v>=0){np[k]=v;break}}}
+    px.set(np);
+  }
+  for(let i=0;i<N;i++){const b=px[i];if(b<0){im.data[i*4+3]=0;continue}const c2=col[b];im.data[i*4]=c2[0];im.data[i*4+1]=c2[1];im.data[i*4+2]=c2[2];im.data[i*4+3]=255}
+  x.putImageData(im,0,0);return c;
+}
+function drawRose(ctx,x,y,R,st,lw){
+  ctx.save();ctx.translate(x,y);ctx.strokeStyle=st.ink;ctx.fillStyle=st.ink;ctx.lineWidth=lw(1);
+  ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.stroke();
+  ctx.beginPath();ctx.arc(0,0,R*.8,0,7);ctx.stroke();
+  ctx.lineWidth=lw(.7);ctx.beginPath();
+  for(let i=0;i<32;i++){const a=i*Math.PI/16;ctx.moveTo(Math.sin(a)*R*.8,-Math.cos(a)*R*.8);ctx.lineTo(Math.sin(a)*R,-Math.cos(a)*R)}
+  ctx.stroke();
+  const pt=(a,len,wid)=>{
+    const ax=Math.sin(a),ay=-Math.cos(a),px=Math.cos(a),py=Math.sin(a),c0=len*.2;
+    const tip=[ax*len,ay*len],l=[ax*c0-px*wid,ay*c0-py*wid],r=[ax*c0+px*wid,ay*c0+py*wid];
+    ctx.beginPath();ctx.moveTo(tip[0],tip[1]);ctx.lineTo(l[0],l[1]);ctx.lineTo(0,0);ctx.closePath();ctx.fillStyle=st.ink;ctx.fill();
+    ctx.beginPath();ctx.moveTo(tip[0],tip[1]);ctx.lineTo(r[0],r[1]);ctx.lineTo(0,0);ctx.closePath();ctx.fillStyle=st.land;ctx.fill();
+    ctx.beginPath();ctx.moveTo(tip[0],tip[1]);ctx.lineTo(l[0],l[1]);ctx.lineTo(0,0);ctx.lineTo(r[0],r[1]);ctx.closePath();ctx.lineWidth=lw(.7);ctx.stroke();
+  };
+  for(let i=0;i<8;i++)pt((i*2+1)*Math.PI/8,R*.52,R*.06);
+  for(let i=0;i<4;i++)pt(Math.PI/4+i*Math.PI/2,R*.72,R*.09);
+  for(let i=0;i<4;i++)pt(i*Math.PI/2,R*.97,R*.13);
+  ctx.beginPath();ctx.arc(0,0,R*.07,0,7);ctx.fillStyle=st.land;ctx.fill();ctx.stroke();
+  const fs=R*.34;
+  txt(ctx,'С',0,-R*1.08,fs*1.1,{col:st.cap,bold:true,align:'c'});
+  txt(ctx,'Ю',0,R*1.08+fs*.9,fs,{col:st.ink,align:'c'});
+  txt(ctx,'З',-R*1.18,fs*.35,fs,{col:st.ink,align:'c'});
+  txt(ctx,'В',R*1.18,fs*.35,fs,{col:st.ink,align:'c'});
+  ctx.restore();
+}
+function txt(ctx,s,x,y,fs,o){
+  o=o||{};
+  ctx.save();ctx.translate(x,y);if(o.rot)ctx.rotate(o.rot);ctx.scale(.05,.05);
+  ctx.font=(o.italic?'italic ':'')+(o.bold?'bold ':'')+(fs*20)+'px '+FONT;
+  ctx.textBaseline='alphabetic';ctx.lineJoin='round';
+  const ls=(o.ls||0)*20;
+  const draw=(fn)=>{
+    if(!ls){let ax=0;if(o.align==='c')ax=-ctx.measureText(s).width/2;else if(o.align==='r')ax=-ctx.measureText(s).width;fn(s,ax,0)}
+    else{let tw=0;const ws=[];for(const ch of s){const w=ctx.measureText(ch).width;ws.push(w);tw+=w+ls}tw-=ls;let ax=o.align==='c'?-tw/2:o.align==='r'?-tw:0,i=0;for(const ch of s){fn(ch,ax,0);ax+=ws[i++]+ls}}
+  };
+  if(o.halo){ctx.strokeStyle=o.halo;ctx.lineWidth=(o.hw||.35)*20;draw((t,ax,ay)=>ctx.strokeText(t,ax,ay))}
+  ctx.fillStyle=o.col||'#000';draw((t,ax,ay)=>ctx.fillText(t,ax,ay));
+  ctx.restore();
+}
+function drawShip(ctx,x,y,sz,flip,st,lw){
+  ctx.save();ctx.translate(x,y);ctx.scale(flip*sz,sz);ctx.lineWidth=lw(.9)/sz;ctx.strokeStyle=st.ink;ctx.fillStyle=st.land;ctx.lineJoin='round';
+  ctx.beginPath();ctx.moveTo(-1.25,-.15);ctx.quadraticCurveTo(-1.05,.55,-.5,.62);ctx.lineTo(.7,.62);ctx.quadraticCurveTo(1.2,.5,1.4,-.4);ctx.lineTo(1.0,-.25);ctx.lineTo(-1.25,-.15);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-.5,-.15);ctx.lineTo(-.5,-2.15);ctx.moveTo(.35,-.2);ctx.lineTo(.35,-2.5);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-1,-.45);ctx.lineTo(-1,-1.65);ctx.quadraticCurveTo(-.5,-1.4,0,-1.65);ctx.lineTo(0,-.45);ctx.quadraticCurveTo(-.5,-.25,-1,-.45);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-.1,-.5);ctx.lineTo(-.1,-2.1);ctx.quadraticCurveTo(.35,-1.8,.8,-2.1);ctx.lineTo(.8,-.5);ctx.quadraticCurveTo(.35,-.3,-.1,-.5);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(.35,-2.5);ctx.lineTo(.85,-2.38);ctx.lineTo(.35,-2.26);ctx.fillStyle=st.cap;ctx.fill();
+  ctx.beginPath();ctx.moveTo(-1.5,.85);ctx.quadraticCurveTo(-1.1,.6,-.7,.85);ctx.moveTo(.2,.9);ctx.quadraticCurveTo(.7,.65,1.2,.9);ctx.stroke();
+  ctx.restore();
+}
+function drawMonster(ctx,x,y,st,lw){
+  ctx.save();ctx.translate(x,y);ctx.strokeStyle=st.ink;ctx.fillStyle=st.land;ctx.lineWidth=lw(.9);ctx.lineJoin='round';ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(-3.6,.2);
+  for(let t=0;t<=1.0001;t+=.05){const px=-2.6+t*5.6,py=-Math.max(0,Math.sin(t*Math.PI*3))*1.15;ctx.lineTo(px,py)}
+  ctx.lineTo(3,.2);ctx.closePath();ctx.fill();ctx.stroke();
+  // шея и голова
+  ctx.beginPath();ctx.moveTo(-3.7,.2);ctx.bezierCurveTo(-4.4,-.8,-3.6,-1.8,-4.1,-2.5);ctx.lineTo(-3.1,-2.4);ctx.bezierCurveTo(-3.0,-1.6,-2.5,-.6,-2.6,.2);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-4.1,-2.5);ctx.lineTo(-5,-2.2);ctx.lineTo(-4.1,-2.0);ctx.stroke();
+  ctx.beginPath();ctx.arc(-3.7,-2.5,.09,0,7);ctx.fillStyle=st.ink;ctx.fill();
+  ctx.beginPath();ctx.moveTo(3,.2);ctx.quadraticCurveTo(4.2,-.4,3.8,-1.3);ctx.quadraticCurveTo(3.4,-.9,3.1,-.6);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-5,.7);ctx.quadraticCurveTo(-4.4,.4,-3.8,.7);ctx.moveTo(3,.8);ctx.quadraticCurveTo(3.6,.5,4.2,.8);ctx.stroke();
+  ctx.restore();
+}
+function drawIsland(ctx,d,st,lw){
+  ctx.save();ctx.translate(d.x,d.y);ctx.strokeStyle=st.ink;ctx.lineWidth=lw(.9);ctx.setLineDash([lw(3),lw(2.5)]);
+  const r=mulberry(Math.floor(d.seed*1e9)),pts=[];
+  for(let a=0;a<12;a++){const an=a/12*6.283,rr=2.3+r()*1.1;pts.push([Math.cos(an)*rr*1.3,Math.sin(an)*rr*.8])}
+  ctx.beginPath();for(let i=0;i<=12;i++){const p=pts[i%12],q=pts[(i+1)%12],mx=(p[0]+q[0])/2,my=(p[1]+q[1])/2;if(i===0)ctx.moveTo(mx,my);else ctx.quadraticCurveTo(p[0],p[1],mx,my)}
+  ctx.stroke();ctx.setLineDash([]);
+  txt(ctx,'?',0,.7,2.6,{col:st.ink,italic:true,align:'c'});
+  txt(ctx,'о. Буян, по слухам',0,4.9,1.8,{col:st.ink,italic:true,align:'c',halo:st.sea,hw:.5});
+  ctx.restore();
+}
+function drawMountain(ctx,m,st,lw){
+  const [x,y,sz,mt,v,snow]=m;
+  const w=sz*1.55,hgt=sz*1.25*(mt?1:.55),px=x+(v-.5)*.3*w;
+  ctx.lineWidth=lw(.95);
+  if(mt){
+    ctx.beginPath();ctx.moveTo(x-w*.5,y);ctx.lineTo(px,y-hgt);ctx.lineTo(x+w*.5,y);ctx.quadraticCurveTo(x,y+.18,x-w*.5,y);
+    ctx.fillStyle=st.land;ctx.fill();ctx.strokeStyle=st.ink;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(px,y-hgt);ctx.lineTo(x+w*.04,y);
+    const n=sz>1.9?5:sz>1.5?4:3,start=snow?.42:.2;
+    for(let i=0;i<n;i++){const t=start+(1-start)*(i+.5)/n;
+      const sx=px+(x+w*.5-px)*t,sy=y-hgt+hgt*t,ex=px+(x+w*.04-px)*t,ey=sy;
+      ctx.moveTo(sx,sy);ctx.lineTo(lerp(sx,ex,.62+.2*(i/n)),ey+.04)}
+    ctx.stroke();
+  }else{
+    ctx.beginPath();ctx.moveTo(x-w*.5,y);ctx.quadraticCurveTo(x-w*.1,y-hgt*1.7,x+w*.5,y);ctx.strokeStyle=st.ink;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+w*.12,y-hgt*.7);ctx.lineTo(x+w*.3,y-hgt*.2);ctx.stroke();
+  }
+}
+function drawCity(ctx,c,st,lw){
+  const x=c.x,y=c.y;ctx.lineWidth=lw(1);ctx.strokeStyle=st.ink;ctx.fillStyle=st.land;
+  if(c.cap){
+    ctx.beginPath();ctx.arc(x,y,1.0,0,7);ctx.fillStyle=st.land;ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.rect(x-.5,y-.15,1,.6);ctx.moveTo(x-.5,y-.15);ctx.lineTo(x-.5,y-.45);ctx.lineTo(x-.25,y-.45);ctx.lineTo(x-.25,y-.3);ctx.lineTo(x+.25,y-.3);ctx.lineTo(x+.25,y-.45);ctx.lineTo(x+.5,y-.45);ctx.lineTo(x+.5,y-.15);ctx.fillStyle=st.cap;ctx.fill();ctx.stroke();
+  }else if(c.size===2){ctx.beginPath();ctx.arc(x,y,.72,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(x,y,.28,0,7);ctx.fillStyle=st.ink;ctx.fill()}
+  else if(c.size===1){ctx.beginPath();ctx.arc(x,y,.55,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(x,y,.17,0,7);ctx.fillStyle=st.ink;ctx.fill()}
+  else{ctx.beginPath();ctx.arc(x,y,.34,0,7);ctx.fillStyle=st.ink;ctx.fill()}
+}
+function drawCartouche(ctx,L,st,lw,world){
+  const {x,y,w,h}=L.cart;
+  ctx.save();
+  ctx.fillStyle=st.paper;ctx.strokeStyle=st.ink;
+  const rp=(inset,rad)=>{const a=x+inset,b=y+inset,c=x+w-inset,d=y+h-inset;ctx.beginPath();ctx.moveTo(a+rad,b);ctx.lineTo(c-rad,b);ctx.arc(c-rad,b+rad,rad,-Math.PI/2,0);ctx.lineTo(c,d-rad);ctx.arc(c-rad,d-rad,rad,0,Math.PI/2);ctx.lineTo(a+rad,d);ctx.arc(a+rad,d-rad,rad,Math.PI/2,Math.PI);ctx.lineTo(a,b+rad);ctx.arc(a+rad,b+rad,rad,Math.PI,Math.PI*1.5);ctx.closePath()};
+  // вогнутые углы
+  const nb=(inset)=>{const a=x+inset,b=y+inset,c=x+w-inset,d=y+h-inset,r=2.6;ctx.beginPath();ctx.moveTo(a+r,b);ctx.lineTo(c-r,b);ctx.arc(c,b,r,Math.PI,Math.PI/2,true);ctx.lineTo(c,d-r);ctx.arc(c,d,r,-Math.PI/2,Math.PI,true);ctx.lineTo(a+r,d);ctx.arc(a,d,r,0,-Math.PI/2,true);ctx.lineTo(a,b+r);ctx.arc(a,b,r,Math.PI/2,0,true);ctx.closePath()};
+  nb(0);ctx.fill();ctx.lineWidth=lw(2);ctx.stroke();
+  nb(1.3);ctx.lineWidth=lw(.8);ctx.stroke();
+  const cx=x+w/2,T=L.title;
+  txt(ctx,T.top,cx,y+6.6,2.25,{col:st.ink,italic:true,align:'c'});
+  let fs=5.2;const mid=T.mid.toUpperCase();while(mw(mid,fs,false,fs*.12)>w-14&&fs>2.5)fs-=.2;
+  txt(ctx,mid,cx,y+13.8,fs,{col:st.ink,bold:true,align:'c',ls:fs*.12});
+  ctx.lineWidth=lw(.8);ctx.beginPath();ctx.moveTo(cx-18,y+16.3);ctx.lineTo(cx-2.5,y+16.3);ctx.moveTo(cx+2.5,y+16.3);ctx.lineTo(cx+18,y+16.3);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx,y+15.2);ctx.lineTo(cx+1.1,y+16.3);ctx.lineTo(cx,y+17.4);ctx.lineTo(cx-1.1,y+16.3);ctx.closePath();ctx.fillStyle=st.cap;ctx.fill();
+  let f1=2.0;while(mw(T.s1,f1,true,0)>w-10&&f1>1.2)f1-=.1;
+  txt(ctx,T.s1,cx,y+21.4,f1,{col:st.ink,italic:true,align:'c'});
+  txt(ctx,T.s2,cx,y+24.4,f1,{col:st.ink,italic:true,align:'c'});
+  // масштабная линейка
+  const bx=cx-14,by=y+29.2;
+  ctx.lineWidth=lw(.9);ctx.strokeStyle=st.ink;
+  for(let i=0;i<4;i++){ctx.fillStyle=i%2?st.land:st.ink;ctx.fillRect(bx+i*7,by,7,.9);}
+  ctx.strokeRect(bx,by,28,.9);
+  txt(ctx,'0',bx,by-.6,1.5,{col:st.ink,align:'c'});txt(ctx,'50',bx+14,by-.6,1.5,{col:st.ink,align:'c'});txt(ctx,'100 лье',bx+28,by-.6,1.5,{col:st.ink,align:'c'});
+  ctx.restore();
+}
+function drawFrame(ctx,st,lw,L){
+  ctx.save();
+  ctx.strokeStyle=st.ink;
+  ctx.lineWidth=lw(2.2);ctx.strokeRect(1.2,1.2,FW-2.4,FH-2.4);
+  ctx.lineWidth=lw(.8);ctx.strokeRect(2.1,2.1,FW-4.2,FH-4.2);
+  const g=1.1,step=12;
+  for(let k=0;k*step<W;k++){const x=M+k*step,w=Math.min(step,W-k*step);ctx.fillStyle=k%2?st.paper:st.ink;
+    ctx.fillRect(x,M-g,w,g);ctx.fillRect(x,M+H,w,g)}
+  for(let k=0;k*step<H;k++){const y=M+k*step,w=Math.min(step,H-k*step);ctx.fillStyle=k%2?st.paper:st.ink;
+    ctx.fillRect(M-g,y,g,w);ctx.fillRect(M+W,y,g,w)}
+  ctx.lineWidth=lw(1);ctx.strokeRect(M-g,M-g,W+2*g,H+2*g);ctx.strokeRect(M,M,W,H);
+  const lon0=12+(L.lon0||0),lat0=52;
+  for(let k=0;k*24<=W;k++){const x=M+k*24,s=(lon0+8*k)+'°';txt(ctx,s,x,4.9,1.55,{col:st.ink,align:'c'});txt(ctx,s,x,FH-2.9,1.55,{col:st.ink,align:'c'})}
+  for(let k=0;k*24<=H;k++){const y=M+k*24,s=(lat0-8*k)+'°';txt(ctx,s,3.9,y+.55,1.55,{col:st.ink,align:'c'});txt(ctx,s,FW-3.9,y+.55,1.55,{col:st.ink,align:'c'})}
+  ctx.restore();
+}
+
+function render(ctx,cw,ch,tx,ty,s,opt){
+  const st=STYLES[SET.style],T=world&&world.T,S=world&&world.S,L=world&&world.L;
+  ctx.setTransform(1,0,0,1,0,0);
+  if(opt.desk){ctx.fillStyle='#2b2118';ctx.fillRect(0,0,cw,ch)}
+  ctx.setTransform(s,0,0,s,tx,ty);
+  ctx.save();
+  if(opt.desk){ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=26;ctx.shadowOffsetY=6}
+  ctx.fillStyle=st.paper;ctx.fillRect(0,0,FW,FH);ctx.restore();
+  const k=clamp(Math.sqrt(s/4.2),.85,2.3);const lw=px=>px*k/s;
+  const vx0=-tx/s,vy0=-ty/s,vx1=(cw-tx)/s,vy1=(ch-ty)/s;
+  const vis=(x,y,r)=>x+r>=vx0&&x-r<=vx1&&y+r>=vy0&&y-r<=vy1;
+  ctx.save();ctx.beginPath();ctx.rect(0,0,FW,FH);ctx.clip();
+  if(T&&S&&L){
+    ctx.save();ctx.beginPath();ctx.rect(M,M,W,H);ctx.clip();
+    ctx.fillStyle=st.sea;ctx.fillRect(M,M,W,H);
+    if(st.shallow){ctx.fillStyle=st.shallow;ctx.fill(T.wave[3],'evenodd')}
+    // береговые линии на воде
+    const wa=[.9,.7,.55,.4,.28],ww=[1.1,.9,.8,.7,.6];
+    ctx.strokeStyle=st.wave;
+    for(let i=0;i<T.wave.length;i++){ctx.globalAlpha=wa[i]*(SET.style==='engr'?.9:.75);ctx.lineWidth=lw(ww[i]);ctx.stroke(T.wave[i])}
+    ctx.globalAlpha=1;
+    if(st.hatch){
+      ctx.save();ctx.clip(T.wave[4],'evenodd');ctx.strokeStyle=st.ink;ctx.lineWidth=lw(.45);ctx.globalAlpha=.7;
+      ctx.beginPath();const y0=Math.max(M,Math.floor(vy0)),y1=Math.min(M+H,vy1);
+      for(let y=M+.4;y<M+H;y+=.7){if(y<y0-1||y>y1+1)continue;ctx.moveTo(M,y);ctx.lineTo(M+W,y)}
+      ctx.stroke();ctx.restore();
+      ctx.save();ctx.clip(T.wave[2],'evenodd');ctx.strokeStyle=st.ink;ctx.lineWidth=lw(.45);ctx.globalAlpha=.8;
+      ctx.beginPath();for(let y=M+.05;y<M+H;y+=.7){if(y<y0-1||y>y1+1)continue;ctx.moveTo(M,y);ctx.lineTo(M+W,y)}
+      ctx.stroke();ctx.restore();
+    }
+    if(SET.style==='chart'){
+      ctx.fillStyle='rgba(31,42,48,.8)';
+      for(const d of L.sound)if(vis(d[0],d[1],2))txt(ctx,String(d[2]),d[0],d[1],1.45,{col:'#1f4a55',italic:true,align:'c'});
+    }
+    // суша
+    ctx.fillStyle=st.land;ctx.fill(T.coast,'evenodd');
+    ctx.save();ctx.clip(T.coast,'evenodd');
+    if(st.biomeA>0){
+      if(!world.bc||world.bcStyle!==SET.style){world.bc=biomeCanvas(T,st);world.bcStyle=SET.style}
+      ctx.globalAlpha=st.biomeA;ctx.imageSmoothingEnabled=true;ctx.drawImage(world.bc,M,M,W,H);ctx.globalAlpha=1;
+    }
+    if(st.country&&SET.borders){
+      for(const ct of S.countries){
+        ctx.save();ctx.clip(ct.path);
+        ctx.globalAlpha=.1;ctx.fillStyle=ct.color;ctx.fillRect(M,M,W,H);
+        ctx.globalAlpha=.34;ctx.strokeStyle=ct.color;ctx.lineWidth=lw(9);ctx.lineJoin='round';ctx.stroke(ct.path);
+        ctx.restore();
+      }
+      ctx.globalAlpha=1;
+    }
+    if(st.rhumb){
+      ctx.strokeStyle='#2c6a4f';ctx.globalAlpha=.3;ctx.lineWidth=lw(.7);
+      for(const d of L.deco)if(d.t==='rose'){ctx.beginPath();for(let i=0;i<16;i++){const a=i*Math.PI/8;ctx.moveTo(d.x,d.y);ctx.lineTo(d.x+Math.sin(a)*260,d.y-Math.cos(a)*260)}ctx.stroke();ctx.strokeStyle=ctx.strokeStyle==='#2c6a4f'?'#a33a2a':'#2c6a4f'}
+      ctx.globalAlpha=1;
+    }
+    // озёра, реки
+    ctx.strokeStyle=st.river;ctx.lineCap='round';ctx.lineJoin='round';
+    const rwid=[.8,1.3,1.9,2.7];
+    for(let i=0;i<4;i++){ctx.lineWidth=lw(rwid[i]);ctx.stroke(T.riverPaths[i])}
+    if(T.lakePath){ctx.fillStyle=st.sea;ctx.fill(T.lakePath);ctx.strokeStyle=st.ink;ctx.lineWidth=lw(.9);ctx.stroke(T.lakePath)}
+    // границы
+    if(SET.borders){
+      ctx.strokeStyle=st.ink;ctx.lineWidth=lw(1.15);ctx.setLineDash([lw(1),lw(3.4)]);ctx.globalAlpha=.8;
+      for(const ct of S.countries)ctx.stroke(ct.path);
+      ctx.setLineDash([]);ctx.globalAlpha=1;
+    }
+    // дороги
+    if(SET.roads){ctx.strokeStyle=st.road;ctx.lineWidth=lw(1);ctx.setLineDash([lw(3.5),lw(2.6)]);ctx.globalAlpha=.85;ctx.stroke(S.roads);ctx.setLineDash([]);ctx.globalAlpha=1}
+    ctx.restore(); // clip coast
+    // значки
+    ctx.lineJoin='round';ctx.lineCap='round';
+    if(s>2.2){
+      ctx.strokeStyle=st.ink;ctx.lineWidth=lw(.9);ctx.globalAlpha=.85;
+      const tr=[[],[],[],[],[],[]];
+      for(const t of S.tIcons)if(vis(t[0],t[1],1.5))tr[t[3]].push(t);
+      ctx.beginPath();
+      for(const t of tr[0]){const [x,y,z]=t;ctx.moveTo(x+.34*z,y-.45*z);ctx.arc(x,y-.45*z,.34*z,0,7);ctx.moveTo(x,y-.1*z);ctx.lineTo(x,y+.15*z)}
+      for(const t of tr[1]){const [x,y,z]=t;ctx.moveTo(x+.34*z,y-.55*z);ctx.arc(x,y-.55*z,.34*z,0,7);ctx.moveTo(x+.2*z,y-.3*z);ctx.arc(x+.1*z,y-.25*z,.2*z,0,7);ctx.moveTo(x,y-.2*z);ctx.lineTo(x,y+.15*z)}
+      for(const t of tr[2]){const [x,y,z]=t;ctx.moveTo(x-.3*z,y);ctx.lineTo(x,y-.95*z);ctx.lineTo(x+.3*z,y);ctx.moveTo(x-.2*z,y-.4*z);ctx.lineTo(x+.2*z,y-.4*z);ctx.moveTo(x,y);ctx.lineTo(x,y+.2*z)}
+      for(const t of tr[3]){const [x,y,z]=t;ctx.moveTo(x-.35*z,y);ctx.lineTo(x+.35*z,y);for(const dx of[-.2,0,.2]){ctx.moveTo(x+dx*z,y);ctx.lineTo(x+dx*z,y-.4*z)}}
+      for(const t of tr[4]){const [x,y,z]=t;ctx.moveTo(x-.4*z,y);ctx.quadraticCurveTo(x,y-.5*z,x+.4*z,y);ctx.moveTo(x+.5*z,y+.35*z);ctx.lineTo(x+.56*z,y+.35*z)}
+      for(const t of tr[5]){const [x,y,z]=t;ctx.moveTo(x-.2*z,y-.3*z);ctx.lineTo(x,y);ctx.lineTo(x+.2*z,y-.3*z)}
+      ctx.stroke();ctx.globalAlpha=1;
+    }
+    for(const m of S.mIcons)if(vis(m[0],m[1],3))drawMountain(ctx,m,st,lw);
+    ctx.strokeStyle=st.ink;ctx.lineWidth=lw(1.35);ctx.lineJoin='round';ctx.stroke(T.coast);
+    // города
+    for(const c of S.cities)if(vis(c.x,c.y,2))drawCity(ctx,c,st,lw);
+    // подписи
+    if(SET.labels){
+      for(const l of L.labels){
+        if(!vis(l.x,l.y,40))continue;
+        if(l.fs*s<7.2)continue;
+        let col=st.ink;
+        if(l.kind==='sea')col=st.wave==='#15130f'?st.ink:(SET.style==='chart'?'#1f4a55':'#4d5a46');
+        if(l.kind==='river')col=st.river;
+        if(l.kind==='city'&&l.cap)col=st.cap;
+        const halo=l.kind==='sea'?null:(SET.style==='engr'?st.land:st.land);
+        txt(ctx,l.t,l.x,l.y,l.fs,{col,italic:l.italic,ls:l.ls,rot:l.rot,halo:l.kind==='sea'?null:halo,hw:l.kind==='country'?.7:.5,bold:l.kind==='country'||(l.kind==='city'&&l.size>=2),align:(l.kind==='city'?'l':'c')});
+      }
+    }
+    // рисунки
+    if(SET.art){
+      for(const d of L.deco){
+        if(!vis(d.x,d.y,9))continue;
+        if(d.t==='rose')drawRose(ctx,d.x,d.y,d.r,st,lw);
+        else if(d.t==='ship')drawShip(ctx,d.x,d.y,d.sz,d.flip,st,lw);
+        else if(d.t==='monster'){drawMonster(ctx,d.x,d.y,st,lw);if(SET.labels)txt(ctx,'Здесь обитают драконы',d.x,d.y+3.2,1.7,{col:st.ink,italic:true,align:'c',halo:st.sea,hw:.5})}
+        else if(d.t==='island')drawIsland(ctx,d,st,lw);
+      }
+    }
+    drawCartouche(ctx,L,st,lw,world);
+    ctx.restore(); // clip map
+  }
+  ctx.restore();
+  if(T&&S&&L){drawFrame(ctx,st,lw,L)}
+  // бумага: пятна, виньетка, изгиб, зерно
+  ctx.save();ctx.beginPath();ctx.rect(0,0,FW,FH);ctx.clip();
+  ctx.globalCompositeOperation='multiply';
+  const rr=mulberry(5);
+  for(let i=0;i<9;i++){const x=rr()*FW,y=rr()*FH,r=8+rr()*26;const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(150,100,40,'+(st.stain*(.4+rr())).toFixed(3)+')');g.addColorStop(1,'rgba(150,100,40,0)');ctx.fillStyle=g;ctx.fillRect(x-r,y-r,2*r,2*r)}
+  const vg=ctx.createRadialGradient(FW/2,FH/2,Math.min(FW,FH)*.38,FW/2,FH/2,Math.hypot(FW,FH)*.52);
+  vg.addColorStop(0,'rgba(255,255,255,0)');vg.addColorStop(1,'rgba(120,75,25,'+st.vig+')');
+  ctx.fillStyle=vg;ctx.fillRect(0,0,FW,FH);
+  ctx.globalAlpha=.05;ctx.fillStyle='#6b4a1a';ctx.fillRect(FW/2-.1,0,.2,FH);ctx.globalAlpha=1;
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.beginPath();ctx.rect(tx,ty,FW*s,FH*s);ctx.clip();
+  ctx.globalAlpha=SET.style==='engr'?.35:.7;
+  const pat=ctx.createPattern(getPaperTile(),'repeat');ctx.fillStyle=pat;ctx.fillRect(0,0,cw,ch);
+  ctx.restore();
+}
+
+/* ====================== состояние и интерфейс ====================== */
+const DEF={seed:'4821',land:38,mount:50,erosion:50,countries:6,cities:28,climate:0,style:'atlas',labels:true,roads:true,borders:true,art:true};
+let SET=Object.assign({},DEF);
+try{const o=JSON.parse(localStorage.getItem(LSKEY)||'null');if(o&&typeof o==='object')SET=Object.assign({},DEF,o)}catch(e){}
+let world=null,token=0,view={z:1,cx:FW/2,cy:FH/2};
+const $=s=>document.querySelector(s);
+const cv=$('#cv'),vctx=cv.getContext('2d'),cache=document.createElement('canvas'),cctx=cache.getContext('2d');
+let dpr=1,CW=0,CH=0,cacheInfo=null,needFull=true,lastRenderMs=0;
+const save=()=>{try{localStorage.setItem(LSKEY,JSON.stringify(SET))}catch(e){}};
+function baseScale(){const aw=CW-24*dpr,ah=CH-(24+34)*dpr;return Math.min(aw/FW,ah/FH)}
+function xform(){const s=baseScale()*view.z;return{s,tx:CW/2-view.cx*s,ty:CH/2+14*dpr-(view.cy-FH/2)*s-FH/2*s+FH/2*s- (view.cy-FH/2)*0}}
+function curT(){const s=baseScale()*view.z;return{s,tx:CW/2-view.cx*s,ty:CH/2+(view.z<1.05?10*dpr:0)-view.cy*s}}
+function resize(){
+  const r=cv.getBoundingClientRect();dpr=Math.min(window.devicePixelRatio||1,1.5);
+  CW=Math.max(2,Math.round(r.width*dpr));CH=Math.max(2,Math.round(r.height*dpr));
+  if(cv.width!==CW||cv.height!==CH){cv.width=CW;cv.height=CH;cache.width=CW;cache.height=CH}
+  needFull=true;sched();
+}
+let raf=0,idleT=0;
+function sched(){if(!raf)raf=requestAnimationFrame(frame)}
+function frame(){
+  raf=0;if(document.hidden)return;
+  const t=curT();
+  if(needFull&&!gesture){
+    const t0=performance.now();
+    render(cctx,CW,CH,t.tx,t.ty,t.s,{desk:true});
+    lastRenderMs=performance.now()-t0;
+    cacheInfo={tx:t.tx,ty:t.ty,s:t.s};needFull=false;
+  }
+  vctx.setTransform(1,0,0,1,0,0);
+  if(cacheInfo){
+    if(Math.abs(cacheInfo.s-t.s)<1e-6&&Math.abs(cacheInfo.tx-t.tx)<.01&&Math.abs(cacheInfo.ty-t.ty)<.01)vctx.drawImage(cache,0,0);
+    else{vctx.fillStyle='#2b2118';vctx.fillRect(0,0,CW,CH);const r=t.s/cacheInfo.s;vctx.drawImage(cache,t.tx-cacheInfo.tx*r,t.ty-cacheInfo.ty*r,CW*r,CH*r)}
+  }
+  if(gesture||anim)sched();
+}
+function invalidate(delay){needFull=true;if(delay){clearTimeout(idleT);idleT=setTimeout(()=>{needFull=true;sched()},delay)}sched()}
+let gesture=false,anim=false;
+function clampView(){view.z=clamp(view.z,1,14);view.cx=clamp(view.cx,0,FW);view.cy=clamp(view.cy,0,FH)}
+function zoomAt(px,py,f){
+  const t=curT(),wx=(px-t.tx)/t.s,wy=(py-t.ty)/t.s;
+  view.z=clamp(view.z*f,1,14);const s=baseScale()*view.z;
+  view.cx=wx-(px-CW/2)/s;view.cy=wy-(py-(CH/2+(view.z<1.05?10*dpr:0)))/s;clampView();
+  gesture=true;clearTimeout(idleT);idleT=setTimeout(()=>{gesture=false;needFull=true;sched()},160);sched();
+}
+function flyTo(cx,cy,z){
+  const a={z:view.z,cx:view.cx,cy:view.cy},t0=performance.now();anim=true;gesture=true;
+  const step=()=>{const p=clamp((performance.now()-t0)/550,0,1),e=p*p*(3-2*p);
+    view.z=lerp(a.z,z,e);view.cx=lerp(a.cx,cx,e);view.cy=lerp(a.cy,cy,e);clampView();
+    if(p<1)requestAnimationFrame(step);else{anim=false;gesture=false;needFull=true}sched()};
+  step();
+}
+/* жесты */
+const ptrs=new Map();let pinch0=null,moved=0;
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.offsetX,y:e.offsetY});moved=0;if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch0={d:Math.hypot(a.x-b.x,a.y-b.y),z:view.z}}else cv.classList.add('drag');hideCard()});
+cv.addEventListener('pointermove',e=>{
+  const p=ptrs.get(e.pointerId);
+  if(!p){hover(e.offsetX,e.offsetY,false);return}
+  const nx=e.offsetX,ny=e.offsetY;
+  if(ptrs.size===1){const dx=(nx-p.x)*dpr,dy=(ny-p.y)*dpr;moved+=Math.abs(dx)+Math.abs(dy);const s=baseScale()*view.z;view.cx-=dx/s;view.cy-=dy/s;clampView();gesture=true;sched();clearTimeout(idleT)}
+  p.x=nx;p.y=ny;
+  if(ptrs.size===2&&pinch0){const [a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);const nz=clamp(pinch0.z*d/pinch0.d,1,14);zoomAt((a.x+b.x)/2*dpr,(a.y+b.y)/2*dpr,nz/view.z)}
+});
+const endP=e=>{if(ptrs.has(e.pointerId)){const was=moved<6&&ptrs.size===1;ptrs.delete(e.pointerId);pinch0=null;cv.classList.remove('drag');
+  if(ptrs.size===0){gesture=false;needFull=true;sched();if(was&&e.pointerType!=='mouse')hover(e.offsetX,e.offsetY,true)}}};
+cv.addEventListener('pointerup',endP);cv.addEventListener('pointercancel',endP);
+cv.addEventListener('pointerleave',()=>{if(!ptrs.size)hideCard()});
+cv.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.offsetX*dpr,e.offsetY*dpr,Math.exp(-e.deltaY*(e.ctrlKey?.01:.0016)))},{passive:false});
+/* наведение */
+const card=$('#card'),ring=$('#ring'),statusEl=$('#status');
+function hideCard(){card.style.display='none';ring.style.display='none';cv.classList.remove('hit')}
+function toWorld(px,py){const t=curT();return[(px*dpr-t.tx)/t.s,(py*dpr-t.ty)/t.s]}
+function hover(px,py,tap){
+  if(!world)return;
+  const [wx,wy]=toWorld(px,py),t=curT();
+  let best=null,bd=1e9;
+  for(const c of world.S.cities){const d=Math.hypot((c.x-wx)*t.s,(c.y-wy)*t.s)/dpr;if(d<bd){bd=d;best=c}}
+  const lim=tap?26:15;
+  const ci=Math.floor(wx-M),cj=Math.floor(wy-M);
+  if(ci>=0&&cj>=0&&ci<W&&cj<H){
+    const id=cj*W+ci,T=world.T,b=T.biome[id];
+    const el=Math.round(Math.max(0,T.h[id]-T.sl)/(1-T.sl)*1400/10)*10;
+    const lon=(12+(wx-M)/3).toFixed(0),lat=(52-(wy-M)/3).toFixed(0);
+    statusEl.textContent=BIOME_N[b]+(b===B.SEA||b===B.LAKE?'':', высота около '+el+' саженей')+'  ·  '+lat+'° с. ш., '+lon+'° в. д.';
+  }
+  if(best&&bd<lim){
+    const info=cityInfo(best,world.S,world.T.seed);
+    card.innerHTML='<h3></h3><div class="st"></div><dl><dt>Земля</dt><dd class="a"></dd><dt>Жителей</dt><dd class="b"></dd><dt>Основан</dt><dd class="c"></dd><dt>Торгует</dt><dd class="d"></dd></dl><p></p>';
+    card.querySelector('h3').textContent=info.name;card.querySelector('.st').textContent=info.status;
+    card.querySelector('.a').textContent=info.country;card.querySelector('.b').textContent=info.pop;card.querySelector('.c').textContent=info.year;card.querySelector('.d').textContent=info.trade;card.querySelector('p').textContent=info.quirk;
+    card.style.display='block';
+    const sr=$('#stage').getBoundingClientRect(),cx=(best.x*t.s+t.tx)/dpr,cy=(best.y*t.s+t.ty)/dpr;
+    let x=cx+18,y=cy-20;const cwid=card.offsetWidth,chh=card.offsetHeight;
+    if(x+cwid>sr.width-8)x=cx-18-cwid;if(x<8)x=8;if(y+chh>sr.height-8)y=sr.height-8-chh;if(y<50)y=50;
+    card.style.left=x+'px';card.style.top=y+'px';
+    ring.style.display='block';ring.style.left=cx+'px';ring.style.top=cy+'px';cv.classList.add('hit');
+  }else hideCard();
+}
+/* прогресс */
+const prog=$('#prog'),progt=$('#progt'),progb=$('#progb');
+function setProg(s,p){prog.style.display='block';progt.textContent=STAGES[s]+'…';progb.style.width=Math.round((s+p)/STAGES.length*100)+'%'}
+function runGen(gen,my){
+  return new Promise(res=>{
+    const step=()=>{
+      if(my!==token){res(null);return}
+      const t0=performance.now();
+      do{const r=gen.next();if(r.done){res(r.value);return}if(r.value)setProg(r.value.s,r.value.p)}while(performance.now()-t0<12);
+      setTimeout(step,0);
+    };step();
+  });
+}
+let terrainKey='',lastT=null;
+async function build(){
+  const my=++token,seed=String(SET.seed||'0');
+  const tk=[seed,SET.land,SET.mount,SET.erosion,SET.climate].join('|');
+  let T=null;
+  const t0=performance.now();
+  if(tk===terrainKey&&lastT)T=lastT;
+  else{T=await runGen(genTerrain(seed,SET),my);if(!T)return;terrainKey=tk;lastT=T}
+  const S=await runGen(genSociety(T,SET),my);if(!S)return;
+  setProg(9,.2);await new Promise(r=>setTimeout(r,0));if(my!==token)return;
+  const L=layout(T,S,seed);L.lon0=hashStr(seed)%30;
+  world={T,S,L,bc:null,bcStyle:null,genMs:performance.now()-t0};
+  prog.style.display='none';
+  fillLegend();hideCard();invalidate();
+  statusEl.textContent='Наведите на город — узнаете, чем он живёт';
+}
+function fillLegend(){
+  const ul=$('#clist');ul.innerHTML='';const S=world.S;
+  S.countries.slice().sort((a,b)=>b.area-a.area).forEach(ct=>{
+    const li=document.createElement('li');li.tabIndex=0;
+    const sw=document.createElement('span');sw.className='sw';sw.style.background=ct.color;
+    const nm=document.createElement('span');nm.textContent=ct.name||'—';
+    const sm=document.createElement('small');sm.textContent=Math.round(ct.area/Math.max(1,S.totalLand)*100)+'% суши · '+ct.cities+' гор.';
+    li.append(sw,nm,sm);
+    const go=()=>{const c=ct.cap;flyTo(c.x,c.y,2.6)};
+    li.addEventListener('click',go);li.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}});
+    ul.appendChild(li);
+  });
+}
+/* панель */
+const SL=[['land','Доля суши',15,70,1,v=>v+'%'],['mount','Горность',0,100,1,v=>v<25?'холмы':v<60?'горы':'хребты'],['erosion','Размыв склонов',0,100,1,v=>v+'%'],['countries','Число государств',1,12,1,v=>v],['cities','Число городов',6,60,1,v=>v],['climate','Климат',-100,100,5,v=>v<-33?'холодный':v>33?'жаркий':'умеренный']];
+const slEl={};
+SL.forEach(([k,lab,mn,mx,stp,fmt])=>{
+  const d=document.createElement('div');d.className='sl';
+  d.innerHTML='<div class="t"><label for="s_'+k+'">'+lab+'</label><output></output></div><input type="range" id="s_'+k+'" min="'+mn+'" max="'+mx+'" step="'+stp+'">';
+  $('#sliders').appendChild(d);
+  const inp=d.querySelector('input'),out=d.querySelector('output');slEl[k]=[inp,out,fmt];
+  inp.addEventListener('input',()=>{SET[k]=+inp.value;out.textContent=fmt(SET[k]);save();clearTimeout(inp._t);inp._t=setTimeout(build,260)});
+});
+const TG=[['labels','Подписи','L'],['roads','Дороги','D'],['borders','Границы','B'],['art','Рисунки','G']];
+const tgEl={};
+TG.forEach(([k,lab])=>{const b=document.createElement('button');b.textContent=lab;b.setAttribute('aria-pressed','true');$('#toggles').appendChild(b);tgEl[k]=b;b.addEventListener('click',()=>toggle(k))});
+function toggle(k){SET[k]=!SET[k];syncUI();save();invalidate()}
+function setStyle(s){SET.style=s;world&&(world.bc=null);syncUI();save();invalidate()}
+function syncUI(){
+  $('#seed').value=SET.seed;
+  for(const k in slEl){slEl[k][0].value=SET[k];slEl[k][1].textContent=slEl[k][2](SET[k])}
+  for(const k in tgEl)tgEl[k].setAttribute('aria-pressed',String(!!SET[k]));
+  document.querySelectorAll('#styles button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.s===SET.style)));
+}
+document.querySelectorAll('#styles button').forEach(b=>b.addEventListener('click',()=>setStyle(b.dataset.s)));
+function randomSeed(){SET.seed=String(Math.floor(Math.random()*900000)+100);syncUI();save();build()}
+$('#rnd').addEventListener('click',randomSeed);
+$('#seed').addEventListener('change',e=>{SET.seed=e.target.value.trim()||'0';syncUI();save();build()});
+$('#seed').addEventListener('keydown',e=>{if(e.key==='Enter'){e.target.blur();}});
+$('#reset').addEventListener('click',()=>{SET=Object.assign({},DEF);view={z:1,cx:FW/2,cy:FH/2};syncUI();save();build()});
+$('#zin').addEventListener('click',()=>zoomAt(CW/2,CH/2,1.5));
+$('#zout').addEventListener('click',()=>zoomAt(CW/2,CH/2,1/1.5));
+$('#zhome').addEventListener('click',homeView);
+function homeView(){flyTo(FW/2,FH/2,1)}
+/* экспорт */
+let lastExport=null;
+async function exportPNG(){
+  if(!world)return;
+  statusEl.textContent='Рисую лист для печати, 3000 точек в ширину…';
+  await new Promise(r=>setTimeout(r,40));
+  const w=3000,h=Math.round(3000*FH/FW),c=document.createElement('canvas');c.width=w;c.height=h;
+  render(c.getContext('2d'),w,h,0,0,w/FW,{desk:false});
+  return new Promise(res=>c.toBlob(b=>{
+    lastExport={size:b.size,w,h};
+    const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='atlas-'+String(SET.seed).replace(/[^\wа-яё-]+/gi,'_')+'.png';
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    statusEl.textContent='Готово: '+a.download+' ('+Math.round(b.size/1024)+' КБ)';res(b);
+  },'image/png'));
+}
+$('#dl').addEventListener('click',exportPNG);
+/* клавиши */
+const help=$('#help');
+function showHelp(v){help.style.display=v?'flex':'none'}
+$('#hclose').addEventListener('click',()=>showHelp(false));
+help.addEventListener('click',e=>{if(e.target===help)showHelp(false)});
+window.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'&&e.target.type==='text')return;
+  const k=e.key.toLowerCase();
+  if(k==='escape'){showHelp(false);hideCard();return}
+  if(e.key==='?'||e.key==='/'){showHelp(help.style.display!=='flex');return}
+  if(k==='r'||k==='к'){randomSeed()}
+  else if(k==='s'||k==='ы'){exportPNG()}
+  else if(k==='1')setStyle('atlas');else if(k==='2')setStyle('chart');else if(k==='3')setStyle('engr');
+  else if(k==='l'||k==='д')toggle('labels');else if(k==='d'||k==='в')toggle('roads');
+  else if(k==='b'||k==='и')toggle('borders');else if(k==='g'||k==='п')toggle('art');
+  else if(k==='+'||k==='=')zoomAt(CW/2,CH/2,1.5);else if(k==='-'||k==='_')zoomAt(CW/2,CH/2,1/1.5);
+  else if(k==='0')homeView();
+});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)sched()});
+new ResizeObserver(resize).observe($('#stage'));
+window.addEventListener('resize',resize);
+syncUI();resize();
+$('#progt').textContent='Поднимаю горы…';prog.style.display='block';
+setTimeout(build,30);
+window.atlasDebug={get world(){return world},get SET(){return SET},build,exportPNG,get lastExport(){return lastExport},get lastRenderMs(){return lastRenderMs},setSet(o){Object.assign(SET,o);syncUI();return build()},sig(){const w=world;return w?[sigOf(w.T.h),w.S.cities.map(c=>c.name+c.x.toFixed(2)).join(),w.S.countries.map(c=>c.name).join()].join('#'):''},invalidate,homeView,flyTo,view:()=>view,setStyle,toggle};
+</script>
+</body>
+</html>
