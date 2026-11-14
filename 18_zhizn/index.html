@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Жизнь в цифрах</title>
+<style>
+:root{--paper:#f3eee2;--paper2:#e9e2d0;--ink:#1b1814;--mut:#5a5347;--rule:#cfc6b2;--acc:#b3261e;--num:Cambria,Georgia,serif;--serif:Georgia,'Palatino Linotype',Cambria,serif;--lab:'Franklin Gothic Medium','Segoe UI',Arial,sans-serif}
+*{box-sizing:border-box}
+html{background:var(--paper);color:var(--ink);scroll-behavior:smooth}
+body{margin:0;font:17px/1.55 var(--serif);min-width:320px;overflow-x:hidden}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.top{display:flex;align-items:center;gap:20px;padding:0 40px;height:52px;border-bottom:1px solid var(--ink)}
+.back{font:14px var(--lab);letter-spacing:.02em;text-decoration:none;display:inline-flex;align-items:center;min-height:36px;padding-right:6px;border-bottom:1px solid transparent}
+.back:hover{border-bottom-color:var(--ink)}
+.mast{font:13px var(--lab);letter-spacing:.28em;text-transform:uppercase;color:var(--mut);margin-right:auto}
+.lnk{background:none;border:0;border-bottom:1px solid var(--mut);min-height:36px;padding:0 2px;cursor:pointer;font:14px var(--lab);color:var(--ink)}
+.lnk:hover{border-bottom-color:var(--acc);color:var(--acc)}
+.bar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 24px;padding:12px 40px 14px;border-bottom:1px solid var(--rule)}
+.fld{display:flex;flex-direction:column;gap:2px}
+.fld>span,.lab{font:12px var(--lab);letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+.fld input,.fld select{height:38px;border:0;border-bottom:1.5px solid var(--ink);background:transparent;padding:0 2px;font:18px var(--serif);border-radius:0;min-width:0}
+.fld select{padding-right:6px;cursor:pointer}
+.fld input[type=date]{width:150px}.fld input[type=time]{width:104px}.fld .nm{width:170px}.fld .lt{width:84px}
+.fld input:focus{background:rgba(179,38,30,.06)}
+.grow{flex:1}
+.btn{height:42px;padding:0 18px;border:1.5px solid var(--ink);background:transparent;cursor:pointer;font:15px var(--lab);letter-spacing:.02em;white-space:nowrap}
+.btn:hover{background:var(--ink);color:var(--paper)}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.pri:hover{background:var(--ink);border-color:var(--ink)}
+.btn small{font:12px var(--lab);opacity:.85;margin-left:6px}
+details.more{padding:0 40px;border-bottom:1px solid var(--rule)}
+details.more>summary{text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:4px;list-style:none;cursor:pointer;min-height:40px;display:flex;align-items:center;gap:10px;font:14px var(--lab);color:var(--ink)}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::before{content:'+';display:inline-block;width:18px;font-size:20px;line-height:1;color:var(--acc)}
+details.more[open]>summary::before{content:'\2212'}
+.moreg{display:flex;flex-wrap:wrap;gap:18px 36px;padding:6px 0 20px;align-items:flex-end}
+.rg{display:flex;flex-direction:column;gap:4px;min-width:170px}
+.rg input[type=range]{width:100%;accent-color:var(--acc);height:28px;margin:0}
+.rg output{font:16px var(--serif)}
+.sw{display:flex;gap:8px}
+.sw button{width:38px;height:38px;border:2px solid transparent;border-radius:50%;cursor:pointer;padding:0;background-clip:content-box;padding:4px}
+.sw button[aria-pressed=true]{border-color:var(--ink)}
+.evbox{flex:1 1 360px;min-width:260px}
+.evf{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.evf input{height:36px;border:0;border-bottom:1.5px solid var(--ink);background:transparent;font:16px var(--serif);border-radius:0}
+.evf .ed{width:140px}.evf .et{width:190px}
+.evl{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:15px}
+.evl li{display:flex;align-items:center;gap:4px}
+.evl button{border:0;background:none;cursor:pointer;min-width:36px;min-height:36px;font-size:20px;color:var(--acc)}
+.page{display:grid;grid-template-columns:minmax(300px,560px) minmax(0,1fr);gap:0 72px;padding:20px 40px 40px;max-width:1500px;margin:0 auto}
+.gridcol{position:sticky;top:10px;align-self:start}
+.seg{display:flex;gap:0;border:1.5px solid var(--ink);width:max-content;margin-bottom:10px;max-width:100%}
+.seg button{min-height:36px;padding:0 16px;border:0;background:transparent;cursor:pointer;font:14px var(--lab);border-right:1.5px solid var(--ink)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.gwrap{position:relative;line-height:0}
+#grid{display:block;max-width:100%}
+.here{position:absolute;pointer-events:none;border:2px solid var(--acc);border-radius:50%;animation:pul 2.4s ease-out infinite}
+@keyframes pul{0%{transform:scale(1);opacity:.9}100%{transform:scale(3.4);opacity:0}}
+@media (prefers-reduced-motion:reduce){.here{animation:none}}
+.legend{font:13px/1.45 var(--lab);color:var(--mut);margin:10px 0 0;display:flex;flex-wrap:wrap;gap:4px 16px}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}
+.gnote{font:italic 14px/1.45 var(--serif);color:var(--mut);margin:6px 0 0;max-width:46ch}
+.tip{position:fixed;z-index:30;pointer-events:none;background:var(--ink);color:var(--paper);font:14px/1.4 var(--serif);padding:7px 11px;max-width:260px;display:none}
+.story{min-width:0;padding-top:4px}
+.kick{font:13px var(--lab);letter-spacing:.2em;text-transform:uppercase;color:var(--acc);margin:0 0 6px}
+h1{font:400 clamp(44px,5.6vw,88px)/1 var(--num);letter-spacing:-.02em;margin:0 0 14px}
+h1 em{font-style:italic;color:var(--acc)}
+.sub{font-size:20px;line-height:1.5;max-width:34em;margin:0 0 6px}
+.demo{display:inline-block;font:12px var(--lab);letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--mut);color:var(--mut);padding:1px 8px;margin-left:8px;vertical-align:middle}
+.giant{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 34px;margin:30px 0 0;padding-top:20px;border-top:1px solid var(--ink)}
+.giant .n{font-size:clamp(64px,9vw,148px);line-height:.95;letter-spacing:-.03em}
+.giant .u{font:20px var(--serif);font-style:italic;color:var(--mut)}
+.trio{display:grid;grid-template-columns:repeat(3,auto);justify-content:start;gap:0 56px;margin:14px 0 0}
+.trio b{display:block;font:400 clamp(24px,2.6vw,38px)/1.1 var(--serif)}
+.trio span{font:13px var(--lab);color:var(--mut);letter-spacing:.04em}
+.sec{margin-top:76px;padding-top:16px;border-top:1px solid var(--ink)}
+.sec h2{font:400 clamp(28px,3vw,40px)/1.1 var(--serif);margin:0 0 6px;display:flex;gap:16px;align-items:baseline}
+.sec h2 i{font:13px var(--lab);letter-spacing:.18em;color:var(--acc);font-style:normal}
+.lead{color:var(--mut);margin:0 0 20px;max-width:40em;font-size:16px}
+.live{width:100%;border-collapse:collapse}
+.live td{padding:12px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
+.live .v{min-width:12ch;font-size:clamp(26px,3vw,40px);line-height:1.1;white-space:nowrap;letter-spacing:-.01em;padding-right:24px}
+.live .v small{font:15px var(--serif);font-style:italic;color:var(--mut);letter-spacing:0;margin-left:6px}
+.live .d{font:14px/1.4 var(--serif);color:var(--mut);max-width:30em}
+.live .d b{font:13px var(--lab);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);display:block;margin-bottom:2px;font-weight:400}
+.apx{font:12px var(--lab);letter-spacing:.1em;text-transform:uppercase;color:var(--acc);margin-left:8px;border:1px solid var(--acc);padding:0 6px;vertical-align:middle;white-space:nowrap}
+.minor{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 28px;margin-top:26px}
+.minor div b{display:block;font:400 28px/1.15 var(--serif)}
+.minor div span{font:13px/1.35 var(--lab);color:var(--mut);display:block;margin-top:2px}
+.moons{display:flex;gap:44px;flex-wrap:wrap;align-items:flex-start}
+.mn{display:flex;flex-direction:column;gap:6px;width:230px}
+.mn canvas{display:block}
+.mn b{font:400 20px/1.25 var(--serif)}
+.mn span{font-size:14px;color:var(--mut);line-height:1.4}
+.facts{margin:26px 0 0;display:grid;grid-template-columns:repeat(3,auto);justify-content:start;gap:12px 48px}
+.facts b{display:block;font:400 34px/1.1 var(--serif)}
+.facts span{font:13px/1.35 var(--lab);color:var(--mut);display:block;max-width:18ch}
+.hero{border:1.5px solid var(--ink);padding:20px 24px;margin-bottom:22px}
+.hero .k{font:400 clamp(28px,3.2vw,44px)/1.1 var(--serif);margin:0}
+.hero .w{font-size:18px;margin:6px 0 10px}
+.hero .cd{font:400 clamp(30px,3.4vw,48px)/1.1 var(--serif);color:var(--acc);white-space:nowrap}
+.hero .cd small{font:15px var(--serif);color:var(--mut);font-style:italic;margin-left:8px}
+.ml{list-style:none;margin:0;padding:0}
+.ml li{display:grid;grid-template-columns:minmax(150px,1.1fr) 1.6fr auto;gap:4px 18px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:16px;align-items:baseline}
+.ml li b{font-weight:400;font-size:20px}
+.ml .when{color:var(--ink)}.ml .left{font:13px var(--lab);color:var(--mut);text-align:right}
+.ml li.past{color:var(--mut)}.ml li.past b{font-size:17px}
+.ml h3{font:13px var(--lab);letter-spacing:.14em;text-transform:uppercase;color:var(--mut);margin:24px 0 4px;font-weight:400}
+.pl{width:100%;border-collapse:collapse}
+.pl th{font:12px var(--lab);letter-spacing:.12em;text-transform:uppercase;color:var(--mut);text-align:left;padding:0 10px 8px 0;font-weight:400}
+.pl td{padding:9px 10px 9px 0;border-top:1px solid var(--rule);vertical-align:baseline}
+.pl td.a{font-size:clamp(22px,2.4vw,32px);line-height:1.1}
+.pl td.a small{font:14px var(--serif);color:var(--mut);font-style:italic}
+.pl td.s{font-size:14px;color:var(--mut)}
+.bars{display:flex;gap:10px;align-items:flex-end;height:120px;margin:10px 0 4px;max-width:480px}
+.bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;height:100%;font:13px var(--lab);color:var(--mut)}
+.bars div i{display:block;width:100%;background:var(--ink);min-height:2px}
+.bars div.me i{background:var(--acc)}
+.bars div b{font:400 15px var(--serif);color:var(--ink)}
+.bdw{font:400 clamp(30px,3.6vw,52px)/1.1 var(--serif);margin:0 0 6px}
+.bdw em{color:var(--acc)}
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:20px 48px;align-items:start}
+.light svg{width:100%;height:auto;display:block;overflow:visible}
+.light text{font:14px var(--lab);fill:#3f392f}
+details.how{margin-top:20px;border-top:1px solid var(--rule)}
+details.how summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font:15px var(--lab)}
+details.how p,details.how li{font-size:15px;color:var(--ink);max-width:48em;margin:6px 0}
+details.how code{font:14px Consolas,'Courier New',monospace;background:var(--paper2);padding:0 4px}
+.foot{margin:40px 0 0;padding-top:16px;border-top:1px solid var(--ink);font:italic 16px/1.5 var(--serif);color:var(--mut);max-width:40em}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:12px 20px;font:16px/1.4 var(--serif);z-index:40;max-width:min(520px,90vw);display:none;text-align:center}
+.help{position:fixed;inset:0;background:rgba(27,24,20,.55);z-index:50;display:none;align-items:center;justify-content:center;padding:16px}
+.help.on{display:flex}
+.help div{background:var(--paper);border:1.5px solid var(--ink);padding:24px 30px;max-width:420px;width:100%}
+.help h2{font:400 26px var(--serif);margin:0 0 12px}
+.help dl{display:grid;grid-template-columns:auto 1fr;gap:8px 18px;margin:0 0 16px}
+.help dt kbd{font:14px Consolas,monospace;border:1.5px solid var(--ink);padding:1px 8px;background:#fff}
+.help dd{margin:0;font-size:16px}
+@media (max-width:1100px){.minor{grid-template-columns:repeat(2,1fr)}.facts{grid-template-columns:repeat(2,auto)}}
+@media (max-width:900px){
+ .top,.bar,details.more{padding-left:16px;padding-right:16px}
+ .page{grid-template-columns:minmax(0,1fr);padding:16px 16px 32px}
+ .gridcol{position:static;order:2;margin-top:40px}
+ .story{order:1}
+ .trio{grid-template-columns:repeat(2,auto);gap:12px 36px}
+ .live .d{display:none}.live .v{min-width:12ch;white-space:normal}
+ .ml li{grid-template-columns:1fr auto}.ml .when{grid-column:1/2}.ml .left{grid-row:1;grid-column:2}
+ .twocol{grid-template-columns:1fr}
+ .mast{display:none}.top{justify-content:space-between}
+ .fld input[type=date]{width:140px}.fld .nm{width:130px}
+ .hero .cd{white-space:normal}
+ .facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:520px){.minor{grid-template-columns:repeat(2,minmax(0,1fr))}.pl .s{display:none}}
+.giant .n,.trio b,.live .v,.minor div b,.facts b,.hero .k,.hero .cd,.pl td.a,.bdw,.ml li b,.bars div b{font-family:var(--num)}
+.giant .u{font-size:22px;color:#4a4439}.trio span,.minor div span,.facts span{font-size:14px;color:#4a4439}.fld>span,.lab{color:#4a4439}
+.fld input::placeholder{color:#6b6458;opacity:1}.demo{font-size:13px;color:#3f392f;border-color:#3f392f}
+</style>
+</head>
+<body>
+<header class="top">
+ <a class="back" href="../index.html">← Все приложения</a>
+ <span class="mast">Жизнь в цифрах · личный плакат</span>
+ <button class="lnk" id="bHelp" type="button" aria-label="Горячие клавиши">Клавиши ?</button>
+ <button class="lnk" id="bReset" type="button">Сбросить</button>
+</header>
+<form class="bar" id="form" onsubmit="return false" autocomplete="off">
+ <label class="fld"><span>Имя (по желанию)</span><input class="nm" id="fName" maxlength="24" placeholder="Как вас зовут"></label>
+ <label class="fld"><span>Дата рождения</span><input type="date" id="fBirth" min="1900-01-01"></label>
+ <label class="fld"><span>Время (по желанию)</span><input type="time" id="fTime"></label>
+ <label class="fld"><span>Город (для света)</span><select id="fCity"></select></label>
+ <label class="fld"><span>Широта °</span><input class="lt" type="number" id="fLat" min="-66" max="80" step="0.01"></label>
+ <span class="grow"></span>
+ <button class="btn pri" type="button" id="bA3">Плакат A3<small>PNG</small></button>
+ <button class="btn" type="button" id="bStory">Вертикальный 1080×1920<small>PNG</small></button>
+</form>
+<details class="more" id="more">
+ <summary>Ещё настройки: пульс, сон, длина сетки, цвет, свои события</summary>
+ <div class="moreg">
+  <label class="rg"><span class="lab">Пульс в покое</span><input type="range" id="fPulse" min="50" max="100" step="1"><output id="oPulse"></output></label>
+  <label class="rg"><span class="lab">Сколько спите</span><input type="range" id="fSleep" min="5" max="11" step="0.5"><output id="oSleep"></output></label>
+  <label class="fld"><span>Сетка рассчитана на</span><select id="fMax"><option value="80">80 лет</option><option value="90">90 лет</option><option value="100">100 лет</option></select></label>
+  <div class="rg"><span class="lab">Акцентный цвет</span><div class="sw" id="fAcc"></div></div>
+  <div class="evbox"><span class="lab">Свои события на сетке</span>
+   <div class="evf"><input class="ed" type="date" id="eDate" aria-label="Дата события"><input class="et" id="eText" maxlength="22" placeholder="Например, переезд" aria-label="Название события"><button class="btn" type="button" id="eAdd" style="height:38px">Добавить</button></div>
+   <ul class="evl" id="eList"></ul></div>
+ </div>
+</details>
+<main class="page">
+ <aside class="gridcol" id="gcol">
+  <div class="seg" id="seg" role="group" aria-label="Вид сетки">
+   <button type="button" data-m="weeks">Недели</button><button type="button" data-m="months">Месяцы</button><button type="button" data-m="years">Годы</button>
+  </div>
+  <div class="gwrap" id="gwrap"><canvas id="grid" role="img" aria-label="Вся жизнь одной сеткой: прожитые клетки закрашены"></canvas><div class="here" id="here"></div></div>
+  <div class="legend" id="legend"></div>
+  <p class="gnote" id="gnote"></p>
+ </aside>
+ <article class="story" id="story"></article>
+</main>
+<div class="tip" id="tip"></div>
+<div class="toast" id="toast" role="status"></div>
+<div class="help" id="help" role="dialog" aria-modal="true" aria-label="Горячие клавиши"><div>
+ <h2>Горячие клавиши</h2>
+ <dl><dt><kbd>G</kbd></dt><dd>сетка: недели, месяцы, годы</dd><dt><kbd>P</kbd></dt><dd>скачать плакат A3</dd><dt><kbd>S</kbd></dt><dd>скачать 1080×1920</dd><dt><kbd>D</kbd></dt><dd>перейти к дате рождения</dd><dt><kbd>?</kbd></dt><dd>это окно</dd><dt><kbd>Esc</kbd></dt><dd>закрыть</dd></dl>
+ <button class="btn" type="button" id="bHelpX">Закрыть</button></div></div>
+<script>
+
+const MS = 864e5, SID = 86164.0905, SYN = 29.530588861, YR = 365.2425, SIDYEAR = 365.256363;
+const dnum = (y, m, d) => Math.round(Date.UTC(y, m - 1, d) / MS);
+const fromDn = n => { const t = new Date(n * MS); return { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate() }; };
+const isLeap = y => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+const dim = (y, m) => [31, isLeap(y) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1];
+const addMonths = (c, k) => { const t = c.y * 12 + c.m - 1 + k; const y = Math.floor(t / 12), m = t - y * 12 + 1; return { y, m, d: Math.min(c.d, dim(y, m)) }; };
+const bdayIn = (c, Y) => (c.m === 2 && c.d === 29 && !isLeap(Y)) ? { y: Y, m: 3, d: 1 } : { y: Y, m: c.m, d: c.d };
+const cmpC = (a, b) => (a.y - b.y) || (a.m - b.m) || (a.d - b.d);
+const wdOf = n => (((n + 4) % 7) + 7) % 7; /* 0 = воскресенье; 1970-01-01 — четверг */
+
+/* возрастные таблицы: от, до (лет), пульс, вдохов/мин, сон ч/сут, морганий/мин, ударный объём мл */
+const SEG = [[0, 1, 125, 40, 14.5, 3, 10], [1, 3, 105, 28, 12.5, 8, 25], [3, 6, 95, 23, 11, 10, 35], [6, 12, 85, 19, 10, 15, 45], [12, 18, 78, 16, 8.8, 15, 60], [18, 65, 72, 15, 8, 15, 70], [65, 300, 74, 16, 7.7, 15, 70]];
+function vitals(ageYears, S) {
+  const ps = (S.pulse || 72) / 72, sl = S.sleep || 8;
+  let beats = 0, breaths = 0, sleepH = 0, blinks = 0, blood = 0;
+  for (const g of SEG) {
+    const yrs = Math.max(0, Math.min(ageYears, g[1]) - g[0]); if (!yrs) continue;
+    const days = yrs * YR, sleep = g[0] >= 65 ? sl - 0.3 : g[0] >= 18 ? sl : g[4];
+    const b = g[2] * ps * 1440 * days;
+    beats += b; breaths += g[3] * 1440 * days; sleepH += sleep * days;
+    blinks += (24 - sleep) * 60 * g[5] * days; blood += b * g[6] / 1000;
+  }
+  return { beats, breaths, sleepH, blinks, blood };
+}
+function rateNow(ageYears, S) {
+  const g = SEG.find(x => ageYears >= x[0] && ageYears < x[1]) || SEG[SEG.length - 1];
+  return { beat: g[2] * ((S.pulse || 72) / 72), breath: g[3] };
+}
+
+/* ---- Луна: средние фазы Меуса (гл. 49) с основными периодическими поправками ---- */
+const RAD = Math.PI / 180;
+function phaseJD(k, full) {
+  const kk = k + (full ? 0.5 : 0), T = kk / 1236.85, sin = Math.sin;
+  const jde = 2451550.09766 + SYN * kk + 0.00015437 * T * T - 0.00000015 * T ** 3 + 0.00000000073 * T ** 4;
+  const E = 1 - 0.002516 * T - 0.0000074 * T * T;
+  const M = (2.5534 + 29.1053567 * kk - 0.0000014 * T * T - 0.00000011 * T ** 3) * RAD;
+  const P = (201.5643 + 385.81693528 * kk + 0.0107582 * T * T + 0.00001238 * T ** 3 - 0.000000058 * T ** 4) * RAD;
+  const F = (160.7108 + 390.67050284 * kk - 0.0016118 * T * T - 0.00000227 * T ** 3 + 0.000000011 * T ** 4) * RAD;
+  const O = (124.7746 - 1.56375588 * kk + 0.0020672 * T * T + 0.00000215 * T ** 3) * RAD;
+  const c = full
+    ? -0.40614 * sin(P) + 0.17302 * E * sin(M) + 0.01614 * sin(2 * P) + 0.01043 * sin(2 * F) + 0.00734 * E * sin(P - M) - 0.00515 * E * sin(P + M) + 0.00209 * E * E * sin(2 * M)
+    : -0.4072 * sin(P) + 0.17241 * E * sin(M) + 0.01608 * sin(2 * P) + 0.01039 * sin(2 * F) + 0.00739 * E * sin(P - M) - 0.00514 * E * sin(P + M) + 0.00208 * E * E * sin(2 * M);
+  const c2 = -0.00111 * sin(P - 2 * F) - 0.00057 * sin(P + 2 * F) + 0.00056 * E * sin(2 * P + M) - 0.00042 * sin(3 * P) + 0.00042 * E * sin(M + 2 * F) + 0.00038 * E * sin(M - 2 * F) - 0.00024 * E * sin(2 * P - M) - 0.00017 * sin(O) - 0.00007 * sin(P + 2 * M);
+  return jde + c + c2;
+}
+const jdToMs = jd => (jd - 2440587.5) * MS - 69 * 1000; /* ТТ → UTC, ΔT ≈ 69 с */
+const phaseMs = (k, full) => jdToMs(phaseJD(k, full));
+const kOf = ms => (ms / MS + 2440587.5 - 2451550.09766) / SYN;
+const PHASE_NAMES = ['новолуние', 'молодая Луна (тонкий серп)', 'первая четверть', 'растущая Луна', 'полнолуние', 'убывающая Луна', 'последняя четверть', 'старая Луна (тонкий серп)'];
+function moonAt(ms) {
+  let k = Math.floor(kOf(ms)) - 1;
+  while (phaseMs(k + 1, false) <= ms) k++;
+  while (phaseMs(k, false) > ms) k--;
+  const a = phaseMs(k, false), b = phaseMs(k + 1, false);
+  const p = (ms - a) / (b - a), ill = (1 - Math.cos(2 * Math.PI * p)) / 2;
+  const names = p < 0.03 || p > 0.97 ? 0 : p < 0.22 ? 1 : p < 0.28 ? 2 : p < 0.47 ? 3 : p < 0.53 ? 4 : p < 0.72 ? 5 : p < 0.78 ? 6 : 7;
+  return { p, ill, age: (ms - a) / MS, name: PHASE_NAMES[names] };
+}
+function fullMoons(a, b) { /* полнолуния в (a, b] */
+  const out = []; for (let k = Math.floor(kOf(a)) - 1; k <= Math.ceil(kOf(b)) + 1; k++) { const t = phaseMs(k, true); if (t > a && t <= b) out.push(t); } return out;
+}
+function newMoonsCount(a, b) { let n = 0; for (let k = Math.floor(kOf(a)) - 1; k <= Math.ceil(kOf(b)) + 1; k++) { const t = phaseMs(k, false); if (t > a && t <= b) n++; } return n; }
+function nextFull(ms) { let k = Math.floor(kOf(ms)) - 1; for (;;) { const t = phaseMs(k, true); if (t > ms) return t; k++; } }
+
+/* ---- длина дня (формулы NOAA) ---- */
+function dayLength(y, m, d, lat) {
+  const N = dnum(y, m, d) - dnum(y, 1, 1) + 1, g = 2 * Math.PI / 365 * (N - 1);
+  const decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+  const ph = lat * RAD, cosH = (Math.sin(-0.833 * RAD) - Math.sin(ph) * Math.sin(decl)) / (Math.cos(ph) * Math.cos(decl));
+  if (cosH >= 1) return { h: 0, polar: 'night' };
+  if (cosH <= -1) return { h: 24, polar: 'day' };
+  return { h: 2 * Math.acos(cosH) / RAD / 15, polar: null };
+}
+function seasonOf(m, lat) { const n = m === 12 || m <= 2 ? 0 : m <= 5 ? 1 : m <= 8 ? 2 : 3; return ['зима', 'весна', 'лето', 'осень'][lat >= 0 ? n : (n + 2) % 4]; }
+
+const PLANETS = [['Меркурий', 87.969], ['Венера', 224.701], ['Марс', 686.980], ['Юпитер', 4332.589], ['Сатурн', 10759.22], ['Уран', 30688.5], ['Нептун', 60182]];
+const A_KM = 149597870.7, ECC = 0.0167086, ORBIT_KM = 2 * Math.PI * A_KM * (1 - ECC * ECC / 4 - 3 * ECC ** 4 / 64);
+const R_EQ = 6378.137;
+
+function parseBirth(S) {
+  const [by, bm, bd] = S.birth.split('-').map(Number);
+  const [hh, mi] = (S.time || '12:00').split(':').map(Number);
+  return { B: { y: by, m: bm, d: bd }, hh, mi, birthMs: new Date(by, bm - 1, bd, hh, mi).getTime() };
+}
+const MILE_D = [1000, 5000, 10000, 15000, 20000, 25000, 30000, 35000];
+const MILE_W = [1000, 2000, 3000, 4000, 5000];
+const MILE_H = [100000, 200000, 300000];
+const MILE_S = [1e8, 5e8, 1e9, 1.5e9, 2e9, 2.5e9, 3e9];
+
+function compute(S, now) {
+  const { B, birthMs, hh, mi } = parseBirth(S);
+  const nd = new Date(now), T = { y: nd.getFullYear(), m: nd.getMonth() + 1, d: nd.getDate() };
+  const dB = dnum(B.y, B.m, B.d), dT = dnum(T.y, T.m, T.d), days = dT - dB;
+  const years = T.y - B.y - (cmpC(T, bdayIn(B, T.y)) < 0 ? 1 : 0);
+  const L = bdayIn(B, B.y + years); let months = 0; while (cmpC(addMonths(L, months + 1), T) <= 0) months++;
+  const am = addMonths(L, months), restDays = dT - dnum(am.y, am.m, am.d);
+  const elapsedMs = now - birthMs, sec = Math.floor(elapsedMs / 1000), eDays = elapsedMs / MS, eYears = eDays / YR;
+  const Nb = bdayIn(B, B.y + years + 1), nextBd = { c: Nb, days: dnum(Nb.y, Nb.m, Nb.d) - dT, wd: wdOf(dnum(Nb.y, Nb.m, Nb.d)), age: years + 1 };
+  const bdToday = days > 0 && cmpC(T, bdayIn(B, T.y)) === 0;
+  const bdWd = [0, 0, 0, 0, 0, 0, 0]; for (let k = 1; k <= years; k++) { const c = bdayIn(B, B.y + k); bdWd[wdOf(dnum(c.y, c.m, c.d))]++; }
+  let leapDays = 0; for (let Y = B.y; Y <= T.y; Y++) if (isLeap(Y)) { const n = dnum(Y, 2, 29); if (n >= dB && n <= dT) leapDays++; }
+  let sat = 0, sun = 0; for (let n = dB; n <= dT; n++) { const w = wdOf(n); if (w === 6) sat++; else if (w === 0) sun++; }
+  const lat = S.lat, orbits = eDays / SIDYEAR;
+  const fm = fullMoons(birthMs, now);
+  const light = c => { const a = dayLength(c.y, c.m, c.d, lat), n = fromDn(dnum(c.y, c.m, c.d) + 1), b = dayLength(n.y, n.m, n.d, lat); return { ...a, delta: (b.h - a.h) * 60, season: seasonOf(c.m, lat) }; };
+  const miles = [];
+  const addM = (kind, n, label, dayN, secN) => {
+    let ms, c = null;
+    if (dayN != null) { c = fromDn(dB + dayN); ms = new Date(c.y, c.m - 1, c.d, hh, mi).getTime(); } else ms = birthMs + secN * 1000;
+    miles.push({ kind, n, label, c, ms, passed: ms <= now, daysLeft: dayN != null ? dB + dayN - dT : null });
+  };
+  MILE_D.forEach(n => addM('d', n, 'дней', n, null)); MILE_W.forEach(n => addM('w', n, 'недель', n * 7, null));
+  MILE_H.forEach(n => addM('h', n, 'часов', null, n * 3600)); MILE_S.forEach(n => addM('s', n, 'секунд', null, n));
+  miles.sort((a, b) => a.ms - b.ms);
+  const upcoming = miles.filter(m => !m.passed), passed = miles.filter(m => m.passed);
+  return {
+    B, T, birthMs, now, dB, dT, days, weeks: Math.floor(days / 7), years, months, restDays, totalMonths: years * 12 + months,
+    sec, minutes: Math.floor(sec / 60), hours: Math.floor(sec / 3600), eDays, eYears,
+    wdBirth: wdOf(dB), leapDays, sat, sun, bdWd, nextBd, bdToday,
+    vit: vitals(eYears, S), orbits, rotations: elapsedMs / 1000 / SID,
+    orbitKm: ORBIT_KM * orbits, rotKm: 2 * Math.PI * R_EQ * Math.cos(lat * RAD) * (elapsedMs / 1000 / SID), galKm: 220 * elapsedMs / 1000,
+    planets: PLANETS.map(([n, p]) => { const a = eDays / p; return { n, p, age: a, next: (Math.floor(a) + 1 - a) * p }; }),
+    moonBirth: moonAt(birthMs), moonNow: moonAt(now), fullCount: fm.length, newCount: newMoonsCount(birthMs, now), nextFull: nextFull(now),
+    lightBirth: light(B), lightNow: light(T), miles, upcoming, passed
+  };
+}
+function liveVals(C, S, now) {
+  const e = now - C.birthMs, ey = e / MS / YR, v = vitals(ey, S);
+  return { sec: Math.floor(e / 1000), beats: v.beats, breaths: v.breaths, orbitKm: ORBIT_KM * (e / MS / SIDYEAR), rotKm: 2 * Math.PI * R_EQ * Math.cos(S.lat * RAD) * (e / 1000 / SID), galKm: 220 * e / 1000 };
+}
+
+/* ====================== ИНТЕРФЕЙС ====================== */
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const KEY = 'a20_zhizn_v1';
+const PAPER = '#f3eee2', PAPER2 = '#d2c7aa', INK = '#1b1814', MUT = '#5a5347', RULE = '#cfc6b2';
+const NUM = 'Cambria,Georgia,serif', SERIF = 'Georgia,"Palatino Linotype",Cambria,serif', LAB = '"Franklin Gothic Medium","Segoe UI",Arial,sans-serif';
+const CITIES = [['Москва', 55.75], ['Санкт-Петербург', 59.94], ['Калининград', 54.71], ['Минск', 53.9], ['Киев', 50.45], ['Краснодар', 45.04], ['Сочи', 43.6], ['Казань', 55.8], ['Екатеринбург', 56.84], ['Новосибирск', 55.03], ['Красноярск', 56.01], ['Владивосток', 43.12], ['Мурманск', 68.97], ['Тбилиси', 41.72], ['Ереван', 40.18], ['Алматы', 43.24], ['Другая широта', null]];
+const ACCS = [['#b3261e', 'Киноварь'], ['#0b6b5c', 'Малахит'], ['#1d4f91', 'Кобальт'], ['#8a4f00', 'Охра']];
+const MG = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+const WDN = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+const WDV = ['воскресенье', 'понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу'];
+const WDS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+const inWd = w => (w === 2 ? 'во ' : 'в ') + WDV[w];
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const pad = n => String(n).padStart(2, '0');
+const DEF = { name: '', birth: '1990-05-15', time: '', city: 'Москва', lat: 55.75, pulse: 72, sleep: 8, max: 90, acc: 0, mode: 'weeks', events: [], touched: false };
+let S = load(), C = null, G = null;
+function load() { try { const o = JSON.parse(localStorage.getItem(KEY)); if (o && /^\d{4}-\d{2}-\d{2}$/.test(o.birth)) return Object.assign({}, DEF, o, { events: Array.isArray(o.events) ? o.events.slice(0, 6) : [] }); } catch (e) { } return JSON.parse(JSON.stringify(DEF)); }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } }
+
+function plural(n, f) { n = Math.abs(Math.floor(n)); const a = n % 10, b = n % 100; return b > 10 && b < 20 ? f[2] : a === 1 ? f[0] : a >= 2 && a <= 4 ? f[1] : f[2]; }
+const grp = s => s.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+const fi = n => grp(String(Math.floor(Math.max(0, n) + 1e-9)));
+function ff(n, d) { const s = n.toFixed(d), p = s.split('.'); return grp(p[0]) + (p[1] ? ',' + p[1] : ''); }
+function fmtBig(n) { return n >= 1e9 ? ff(n / 1e9, 2) + '\u00a0млрд' : n >= 1e6 ? ff(n / 1e6, 1) + '\u00a0млн' : fi(n); }
+const fmtC = c => c.d + ' ' + MG[c.m - 1] + ' ' + c.y;
+const fmtDn = dn => fmtC(fromDn(dn));
+const fmtDnWd = dn => WDN[wdOf(dn)] + ', ' + fmtDn(dn);
+const localDn = ms => { const d = new Date(ms); return dnum(d.getFullYear(), d.getMonth() + 1, d.getDate()); };
+const hms = ms => { const d = new Date(ms); return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); };
+const hm = h => { const t = Math.round(h * 60); return Math.floor(t / 60) + '\u00a0ч\u00a0' + pad(t % 60) + '\u00a0мин'; };
+const durSec = s => { s = Math.round(Math.abs(s)); const m = Math.floor(s / 60); return m ? m + '\u00a0мин\u00a0' + (s % 60) + '\u00a0с' : s + '\u00a0с'; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const MLAB = { 1e8: '100 миллионов секунд', 5e8: '500 миллионов секунд', 1e9: 'миллиард секунд', 1234567890: '1 234 567 890 секунд', 1.5e9: '1,5 миллиарда секунд', 2e9: '2 миллиарда секунд', 2.5e9: '2,5 миллиарда секунд', 3e9: '3 миллиарда секунд' };
+function mName(m) {
+  if (m.kind === 'd') return fi(m.n) + ' ' + plural(m.n, ['день', 'дня', 'дней']);
+  if (m.kind === 'w') return fi(m.n) + ' ' + plural(m.n, ['неделя', 'недели', 'недель']);
+  if (m.kind === 'h') return fi(m.n) + ' ' + plural(m.n, ['час', 'часа', 'часов']);
+  return MLAB[m.n] || fi(m.n) + ' секунд';
+}
+const effMax = () => Math.max(S.max, Math.ceil((C ? C.years + 1 : 0) / 10) * 10);
+const accent = () => ACCS[S.acc][0];
+
+/* ------------ сетка ------------ */
+function gspec(mode, max) { return mode === 'weeks' ? { cols: 52, n: max * 52 } : mode === 'months' ? { cols: 36, n: max * 12 } : { cols: 10, n: max }; }
+function cellDn(mode, i) {
+  const B = C.B;
+  if (mode === 'weeks') { const c = bdayIn(B, B.y + Math.floor(i / 52)); return dnum(c.y, c.m, c.d) + 7 * (i % 52); }
+  if (mode === 'months') { const c = addMonths(B, i); return dnum(c.y, c.m, c.d); }
+  const c = bdayIn(B, B.y + i); return dnum(c.y, c.m, c.d);
+}
+function buildCells(mode, max) { const sp = gspec(mode, max), st = new Array(sp.n + 1); for (let i = 0; i <= sp.n; i++) st[i] = cellDn(mode, i); return { sp, st }; }
+function evCell(cells, dn) { const st = cells.st; if (dn < st[0] || dn >= st[cells.sp.n]) return -1; let lo = 0, hi = cells.sp.n - 1; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (st[mid] <= dn) lo = mid; else hi = mid - 1; } return lo; }
+const STAGES = [[7, 'школа'], [18, 'взрослость']];
+
+/* рисует сетку; o: x,y — левый верхний угол клеток, cw/ch — шаг, gap, fs — кегль подписей, mr — поле справа */
+function drawGrid(g, o) {
+  const { cells, mode } = o, { cols, n } = cells.sp, rows = Math.ceil(n / cols), dg = mode === 'weeks' ? o.dgap : 0, acc = accent();
+  const rowY = r => o.y + r * o.ch + Math.floor(r / 10) * dg * (mode === 'weeks' ? 1 : 0);
+  const cx = i => o.x + (i % cols) * o.cw, cy = i => rowY(Math.floor(i / cols));
+  const dT = C.dT; let cur = -1;
+  g.lineWidth = Math.max(0.5, o.cw * 0.09);
+  const w = o.cw - o.gap, h = o.ch - o.gap;
+  for (let i = 0; i < n; i++) {
+    const x = cx(i), y = cy(i), lived = cells.st[i] <= dT;
+    if (lived) { g.fillStyle = INK; g.fillRect(x, y, w, h); if (cells.st[i + 1] > dT) cur = i; }
+    else { g.fillStyle = PAPER2; g.fillRect(x, y, w, h); }
+  }
+  if (cur >= 0) { g.fillStyle = acc; g.fillRect(cx(cur) - o.cw * .15, cy(cur) - o.ch * .15, w + o.cw * .3, h + o.ch * .3); }
+  g.font = o.fs + 'px ' + LAB; g.textBaseline = 'middle'; g.textAlign = 'right'; g.fillStyle = '#3f392f';
+  const step = mode === 'months' ? 5 : mode === 'years' ? 1 : 10;
+  for (let r = 0; r < rows; r += (mode === 'weeks' ? 10 : 1)) {
+    if (mode === 'months' && r % 5) continue;
+    const age = mode === 'weeks' ? r : mode === 'months' ? r * 3 : r * 10;
+    g.fillText(String(age), o.x - o.fs * .6, rowY(r) + h / 2);
+  }
+  /* события и подписи справа */
+  const marks = [];
+  if (o.mr > 0) {
+    const first = a => mode === 'weeks' ? a * 52 : mode === 'months' ? a * 12 : a;
+    STAGES.forEach(([a, t]) => { if (a * (mode === 'weeks' ? 52 : mode === 'months' ? 12 : 1) < n) marks.push({ i: first(a), t: a + ' · ' + t, c: MUT, ring: false }); });
+  }
+  S.events.forEach(ev => { const [y, m, d] = ev.d.split('-').map(Number), i = evCell(cells, dnum(y, m, d)); if (i >= 0) marks.push({ i, t: ev.t, c: INK, ring: true, ev: true }); });
+  if (cur >= 0 && o.mr > 0) marks.push({ i: cur, t: 'сегодня', c: acc, ring: false, bold: true });
+  marks.sort((a, b) => a.i - b.i);
+  const gridR = o.x + cols * o.cw, lh = o.fs * 1.35; let lastY = -1e9;
+  g.textAlign = 'left';
+  marks.forEach(mk => {
+    const yy = cy(mk.i) + h / 2;
+    if (mk.ring) { g.strokeStyle = acc; g.lineWidth = Math.max(1.2, o.cw * .25); g.beginPath(); g.arc(cx(mk.i) + w / 2, yy, Math.max(o.cw, o.ch) * 1.25, 0, 7); g.stroke(); }
+    if (o.mr <= 0) return;
+    let ty = Math.max(yy, lastY + lh); lastY = ty;
+    g.strokeStyle = mk.c; g.lineWidth = 1; g.beginPath(); g.moveTo(gridR + o.fs * .2, yy); g.lineTo(gridR + o.fs * .9, ty); g.stroke();
+    g.fillStyle = mk.c; g.font = o.fs + 'px ' + LAB;
+    let t = mk.t; const maxW = o.mr - o.fs * 1.2; while (g.measureText(t).width > maxW && t.length > 3) t = t.slice(0, -2);
+    if (t !== mk.t) t = t.trim() + '…';
+    g.fillText(t, gridR + o.fs * 1.1, ty);
+  });
+  g.textBaseline = 'alphabetic';
+  return { rowY, cx, cy, cur, rows };
+}
+
+function layoutGrid() {
+  if (!C) return;
+  const cv = $('#grid'), col = $('#gcol'), W = Math.floor(col.clientWidth), mode = S.mode, max = effMax();
+  const cells = buildCells(mode, max), { cols, n } = cells.sp, rows = Math.ceil(n / cols);
+  const ml = 30, mr = W >= 480 ? 140 : 0, desk = innerWidth > 900;
+  const dg = mode === 'weeks' ? 5 : 0, extra = mode === 'weeks' ? Math.floor((rows - 1) / 10) * dg : 0;
+  const s0 = (W - ml - mr) / cols;
+  const availH = desk ? Math.max(300, innerHeight - 300) : 1e9;
+  let ch = Math.min(s0, (availH - extra) / rows); ch = Math.max(ch, 3.5);
+  const cw = s0, H = Math.ceil(rows * ch + extra + 8);
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  const gap = Math.max(0.8, Math.min(cw, ch) * 0.16);
+  const geo = drawGrid(g, { cells, mode, x: ml, y: 3, cw, ch, gap, dgap: dg, fs: 14, mr });
+  G = Object.assign({ cells, mode, cols, n, ml, cw, ch, gap, dg, W, H }, geo);
+  const hr = $('#here');
+  if (geo.cur >= 0) { const s = Math.max(cw, ch); hr.style.display = 'block'; hr.style.width = hr.style.height = s + 'px'; hr.style.left = (geo.cx(geo.cur) + (cw - gap) / 2 - s / 2) + 'px'; hr.style.top = (geo.cy(geo.cur) + (ch - gap) / 2 - s / 2) + 'px'; } else hr.style.display = 'none';
+  const lived = cells.st.filter((v, i) => i < n && v <= C.dT).length, unit = { weeks: ['клетка — одна неделя', 'Каждая строка — один год жизни, от дня рождения до дня рождения.'], months: ['клетка — один месяц', 'Каждая строка — три года, по 12 клеток на год.'], years: ['клетка — один год', 'Каждая строка — десять лет жизни.'] }[mode];
+  $('#legend').innerHTML = '<span><i style="background:' + INK + '"></i>прожито</span><span><i style="background:' + accent() + '"></i>сейчас</span><span><i style="background:' + PAPER2 + ';outline:1px solid ' + RULE + '"></i>впереди</span><span>' + unit[0] + '; закрашено ' + Math.round(lived / n * 100) + '% сетки на ' + max + ' ' + plural(max, ['год', 'года', 'лет']) + '</span>';
+  $('#gnote').textContent = unit[1] + ' Сетка — не прогноз, а просто линейка.';
+  $$('#seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === mode));
+}
+function gridHit(ev) {
+  if (!G) return -1;
+  const r = $('#grid').getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
+  const c = Math.floor((x - G.ml) / G.cw); if (c < 0 || c >= G.cols || x < G.ml) return -1;
+  for (let rr = 0; rr < G.rows; rr++) { const y0 = G.rowY(rr); if (y >= y0 && y < y0 + G.ch - G.gap * .2) { const i = rr * G.cols + c; return i < G.n ? i : -1; } if (y0 > y) break; }
+  return -1;
+}
+function tipText(i) {
+  const st = G.cells.st, dn = st[i], mode = G.mode, age = mode === 'weeks' ? Math.floor(i / 52) : mode === 'months' ? Math.floor(i / 12) : i;
+  const state = st[i] > C.dT ? 'впереди' : st[i + 1] > C.dT ? 'идёт сейчас' : 'прожито';
+  const head = mode === 'weeks' ? 'Неделя ' + fi(i + 1) : mode === 'months' ? 'Месяц ' + fi(i + 1) : (i + 1) + '-й год';
+  return head + ' · ' + state + '<br>с ' + fmtDn(dn) + ', возраст ' + age + ' ' + plural(age, ['год', 'года', 'лет']);
+}
+
+/* ------------ луна ------------ */
+const MARIA = [[-.3, -.2, .3], [.25, -.3, .26], [.1, .15, .3], [-.35, .25, .18], [.42, .12, .17], [-.05, -.5, .14]];
+function drawMoon(g, cx, cy, r, p, flip) {
+  const k = Math.cos(2 * Math.PI * p), s = (p < 0.5 ? 1 : -1) * (flip ? -1 : 1);
+  g.save(); g.fillStyle = '#26211c'; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
+  g.beginPath(); const N = 48;
+  for (let j = 0; j <= N; j++) { const t = -Math.PI / 2 + Math.PI * j / N; g[j ? 'lineTo' : 'moveTo'](cx + s * r * Math.cos(t), cy + r * Math.sin(t)); }
+  for (let j = N; j >= 0; j--) { const t = -Math.PI / 2 + Math.PI * j / N; g.lineTo(cx + s * k * r * Math.cos(t), cy + r * Math.sin(t)); }
+  g.closePath(); g.fillStyle = '#f8f1dc'; g.fill(); g.clip();
+  g.fillStyle = 'rgba(70,58,44,.2)'; MARIA.forEach(m => { g.beginPath(); g.arc(cx + m[0] * r * (flip ? -1 : 1), cy + m[1] * r, m[2] * r, 0, 7); g.fill(); });
+  g.restore(); g.strokeStyle = INK; g.lineWidth = Math.max(1.2, r / 40); g.beginPath(); g.arc(cx, cy, r, 0, 7); g.stroke();
+}
+function paintMoons() {
+  $$('canvas[data-moon]').forEach(cv => {
+    const p = +cv.dataset.moon, dpr = Math.min(2, window.devicePixelRatio || 1), sz = 150;
+    cv.width = sz * dpr; cv.height = sz * dpr; cv.style.width = cv.style.height = sz + 'px';
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); drawMoon(g, sz / 2, sz / 2, sz / 2 - 3, p, S.lat < 0);
+  });
+}
+
+/* ------------ свет ------------ */
+function lightSvg() {
+  const Y = C.T.y, W = 400, H = 210, L = 30, R = 8, T = 16, Bm = 26, pts = [];
+  let mn = 24, mx = 0;
+  for (let d = 0; d < 365; d++) { const c = fromDn(dnum(Y, 1, 1) + d), v = dayLength(c.y, c.m, c.d, S.lat).h; pts.push(v); mn = Math.min(mn, v); mx = Math.max(mx, v); }
+  mn = Math.max(0, Math.floor(mn / 2) * 2 - (mn % 2 === 0 && mn > 0 ? 2 : 0)); mx = Math.min(24, Math.ceil(mx / 2) * 2 + (mx % 2 === 0 && mx < 24 ? 2 : 0));
+  const X = d => L + (W - L - R) * d / 364, Yy = v => T + (H - T - Bm) * (1 - (v - mn) / (mx - mn || 1));
+  let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Длина дня в течение года">';
+  for (let v = mn; v <= mx; v += 2) s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Yy(v) + '" y2="' + Yy(v) + '" stroke="' + RULE + '"/><text x="' + (L - 6) + '" y="' + (Yy(v) + 4) + '" text-anchor="end">' + v + '</text>';
+  'ЯФМАМИИАСОНД'.split('').forEach((ch, m) => { const d = dnum(Y, m + 1, 15) - dnum(Y, 1, 1); s += '<text x="' + X(d) + '" y="' + (H - 8) + '" text-anchor="middle">' + ch + '</text>'; });
+  s += '<path d="' + pts.map((v, d) => (d ? 'L' : 'M') + X(d).toFixed(1) + ' ' + Yy(v).toFixed(1)).join('') + '" fill="none" stroke="' + INK + '" stroke-width="2"/>';
+  const doy = dn => dn - dnum(Y, 1, 1), bi = Math.min(364, doy(dnum(Y, C.B.m, Math.min(C.B.d, dim(Y, C.B.m))))), ti = Math.min(364, doy(C.dT));
+  const pb = [X(bi), Yy(pts[bi])], pt = [X(ti), Yy(pts[ti])], near = Math.abs(pb[0] - pt[0]) < 80;
+  s += '<circle cx="' + pb[0] + '" cy="' + pb[1] + '" r="5" fill="' + PAPER + '" stroke="' + INK + '" stroke-width="2"/><text x="' + pb[0] + '" y="' + (near && pb[1] <= pt[1] ? pb[1] - 11 : pb[1] + (near ? -11 : 20)) + '" text-anchor="' + (pb[0] > W - 80 ? 'end' : 'middle') + '" style="fill:' + INK + '">рождение</text>';
+  s += '<circle cx="' + pt[0] + '" cy="' + pt[1] + '" r="5" fill="' + accent() + '"/><text x="' + pt[0] + '" y="' + (near && pb[1] <= pt[1] ? pt[1] + 20 : pt[1] - 11) + '" text-anchor="' + (pt[0] > W - 60 ? 'end' : 'middle') + '" style="fill:' + accent() + '">сегодня</text>';
+  return s + '</svg>';
+}
+function lightText(l, when) {
+  if (l.polar === 'night') return when + ': полярная ночь, солнце не поднимается над горизонтом.';
+  if (l.polar === 'day') return when + ': полярный день, солнце не заходит.';
+  return when + ': ' + l.season + ', день длится ' + hm(l.h) + '.';
+}
+
+/* ------------ статья ------------ */
+function liveRow(id, val, unit, name, apx, text) { return '<tr><td class="v"><span id="' + id + '">' + val + '</span>' + (unit ? '<small>' + unit + '</small>' : '') + '</td><td class="d"><b>' + name + (apx ? '<span class="apx">примерно</span>' : '') + '</b>' + text + '</td></tr>'; }
+function renderStory() {
+  const c = C, v = c.vit, rt = rateNow(c.eYears, S), hasT = !!S.time;
+  const demo = !S.touched;
+  const bdLine = 'Родились ' + inWd(c.wdBirth) + ', ' + fmtC(c.B) + (hasT ? ', в ' + S.time : '') + '.';
+  let h1;
+  if (c.days === 0) h1 = '<em>Первый</em> день';
+  else if (c.years > 0) h1 = '<em>' + c.years + '</em> ' + plural(c.years, ['год', 'года', 'лет']);
+  else if (c.months > 0) h1 = '<em>' + c.months + '</em> ' + plural(c.months, ['месяц', 'месяца', 'месяцев']);
+  else h1 = '<em>' + c.days + '</em> ' + plural(c.days, ['день', 'дня', 'дней']);
+  const rest = [];
+  if (c.years > 0 && c.months > 0) rest.push(c.months + ' ' + plural(c.months, ['месяц', 'месяца', 'месяцев']));
+  if (c.years > 0 || c.months > 0) { if (c.restDays > 0) rest.push(c.restDays + ' ' + plural(c.restDays, ['день', 'дня', 'дней'])); }
+  let restTxt = rest.length ? 'и ' + rest.join(' и ') : '';
+  if (c.years === 0 && c.months > 0 && c.restDays > 0) restTxt = 'и ' + c.restDays + ' ' + plural(c.restDays, ['день', 'дня', 'дней']);
+  const sunday = c.B.m === 2 && c.B.d === 29;
+  let o = '';
+  o += '<p class="kick">' + (S.name ? 'Плакат · ' + esc(S.name) : 'Личный плакат') + (demo ? '<span class="demo">пример · введите свою дату</span>' : '') + '</p>';
+  o += '<h1>' + h1 + '</h1>' + (restTxt ? '<p class="sub" style="font-size:26px;margin:-4px 0 8px;font-style:italic">' + restTxt + '</p>' : '');
+  o += '<p class="sub">' + bdLine + ' Всё ниже посчитано от этой даты, проверить можно по календарю.' + (hasT ? '' : ' Время рождения не указано — считаем от полудня.') + (c.bdToday ? ' <b style="color:var(--acc)">Сегодня день рождения — с праздником!</b>' : '') + '</p>';
+  o += '<div class="giant"><span class="n">' + fi(c.days) + '</span><span class="u">' + plural(c.days, ['день', 'дня', 'дней']) + ' жизни</span></div>';
+  o += '<div class="trio"><div><b>' + fi(c.weeks) + '</b><span>' + plural(c.weeks, ['полная неделя', 'полные недели', 'полных недель']) + '</span></div><div><b>' + fi(c.hours) + '</b><span>' + plural(c.hours, ['час', 'часа', 'часов']) + '</span></div><div><b>' + fi(c.minutes) + '</b><span>' + plural(c.minutes, ['минута', 'минуты', 'минут']) + '</span></div></div>';
+  /* 01 */
+  const vSurf = 2 * Math.PI * R_EQ * Math.cos(S.lat * RAD) / SID * 3600;
+  o += '<section class="sec" id="s-live"><h2><i>01</i>Прямо сейчас</h2><p class="lead">Эти счётчики идут сами. Точные — секунды и путь Земли; оценки помечены словом «примерно».</p><table class="live"><tbody>';
+  o += liveRow('lv-sec', fi(c.sec), '', 'Секунд прожито', false, 'Ровно столько прошло с ' + (hasT ? S.time + ' ' : 'полудня ') + fmtC(c.B) + ' по вашим часам.');
+  o += liveRow('lv-beats', fi(v.beats), '', 'Ударов сердца', true, 'Пульс по возрасту: ' + Math.round(125 * S.pulse / 72) + ' в минуту у младенца, ' + S.pulse + ' у взрослого (ваша настройка). Сейчас считаем ' + Math.round(rt.beat) + ' в минуту. Последние цифры бегут для наглядности, точность — около 5–10%.');
+  o += liveRow('lv-breaths', fi(v.breaths), '', 'Вдохов', true, 'Дыхание по возрасту: 40 в минуту у младенца, 15 у взрослого. Сейчас ' + rt.breath + ' в минуту.');
+  o += liveRow('lv-orbit', fi(c.orbitKm), 'км', 'Вместе с Землёй вокруг Солнца', false, 'Орбита ≈ ' + ff(ORBIT_KM / 1e6, 1) + ' млн км за ' + ff(SIDYEAR, 3) + ' суток, скорость ≈ ' + ff(ORBIT_KM / (SIDYEAR * 86400), 2) + ' км/с. Полных кругов: ' + ff(c.orbits, 2) + '.');
+  o += liveRow('lv-rot', fi(c.rotKm), 'км', 'Вместе с вращением Земли', false, 'На широте ' + ff(S.lat, 2) + '° поверхность движется со скоростью ≈ ' + fi(vSurf) + ' км/ч. Земля повернулась вокруг оси ' + fi(c.rotations) + ' ' + plural(c.rotations, ['раз', 'раза', 'раз']) + ' (звёздные сутки 23 ч 56 мин).');
+  o += liveRow('lv-gal', fi(c.galKm), 'км', 'Вокруг центра Галактики', true, 'Солнечная система летит со скоростью ≈ 220 км/с — значение известно лишь приблизительно.');
+  o += '</tbody></table><div class="minor">';
+  o += '<div><b>' + ff(v.sleepH / 8760, 1) + '</b><span>' + plural(Math.round(v.sleepH / 8760), ['год', 'года', 'лет']) + ' во сне, примерно (' + ff(S.sleep, 1) + ' ч в сутки у взрослого)</span></div>';
+  o += '<div><b>' + fmtBig(v.blinks) + '</b><span>морганий, примерно (15 в минуту днём)</span></div>';
+  o += '<div><b>' + fmtBig(v.blood) + '</b><span>литров крови прошло через сердце, примерно (удар × ударный объём)</span></div>';
+  o += '<div><b>' + fi(c.rotations) + '</b><span>оборотов Земли вокруг оси</span></div></div></section>';
+  /* 02 круглые числа */
+  const up = c.upcoming[0];
+  o += '<section class="sec" id="s-round"><h2><i>02</i>Круглые числа</h2><p class="lead">Дни, недели, часы и секунды, у которых красивые нули. Дата — по местному календарю.</p>';
+  if (up) {
+    const dn = localDn(up.ms), tm = (up.kind === 'h' || up.kind === 's') && hasT ? ' в ' + hms(up.ms) : '';
+    o += '<div class="hero"><p class="lab">Ближайшее</p><p class="k">' + mName(up) + '</p><p class="w">' + fmtDnWd(dn) + tm + (hasT || up.kind === 'd' || up.kind === 'w' ? '' : ' (примерно в этот день)') + '</p><div class="cd" id="cd"></div></div>';
+  } else o += '<div class="hero"><p class="k">Все круглые числа из нашего списка уже позади</p></div>';
+  const row = (m, past) => { const dn = localDn(m.ms), d = dn - c.dT, tm = (m.kind === 'h' || m.kind === 's') && hasT ? ', ' + hms(m.ms) : ''; return '<li class="' + (past ? 'past' : '') + '"><b>' + mName(m) + '</b><span class="when">' + fmtDnWd(dn) + tm + '</span><span class="left">' + (d === 0 ? 'сегодня' : past ? fi(-d) + ' ' + plural(-d, ['день', 'дня', 'дней']) + ' назад' : 'через ' + fi(d) + ' ' + plural(d, ['день', 'дня', 'дней'])) + '</span></li>'; };
+  o += '<ul class="ml">' + c.upcoming.slice(0, 6).map(m => row(m, false)).join('') + '</ul>';
+  if (c.passed.length) o += '<ul class="ml"><h3>Уже было</h3>' + c.passed.slice(-5).reverse().map(m => row(m, true)).join('') + '</ul>';
+  o += '</section>';
+  /* 03 луна */
+  const mb = c.moonBirth, mnow = c.moonNow, nf = new Date(c.nextFull);
+  o += '<section class="sec" id="s-moon"><h2><i>03</i>Луна</h2><p class="lead">Фазы посчитаны по формулам Жана Меуса: средний лунный месяц ' + ff(SYN, 5) + ' суток плюс поправки на неровность орбиты. Погрешность — несколько минут.</p><div class="moons">';
+  o += '<div class="mn"><canvas data-moon="' + mb.p.toFixed(5) + '" role="img" aria-label="Луна в день рождения"></canvas><span class="lab">В день рождения</span><b>' + cap(mb.name) + '</b><span>Освещено ' + Math.round(mb.ill * 100) + '%, возраст Луны ' + ff(mb.age, 1) + ' ' + plural(Math.round(mb.age), ['сутки', 'суток', 'суток']).replace('сутки', 'суток') + '.</span></div>';
+  o += '<div class="mn"><canvas data-moon="' + mnow.p.toFixed(5) + '" role="img" aria-label="Луна сегодня"></canvas><span class="lab">Сейчас</span><b>' + cap(mnow.name) + '</b><span>Освещено ' + Math.round(mnow.ill * 100) + '%. Следующее полнолуние — ' + nf.getDate() + ' ' + MG[nf.getMonth()] + ' ' + nf.getFullYear() + ', ' + hms(nf).slice(0, 5) + '.</span></div></div>';
+  o += '<div class="facts"><div><b>' + fi(c.fullCount) + '</b><span>полнолуний с вашего рождения</span></div><div><b>' + fi(c.newCount) + '</b><span>новолуний</span></div><div><b>' + ff(c.eDays / SYN, 1) + '</b><span>лунных месяцев по ' + ff(SYN, 2) + ' суток</span></div></div></section>';
+  /* 04 календарь */
+  const maxb = Math.max(1, ...c.bdWd), order = [1, 2, 3, 4, 5, 6, 0];
+  o += '<section class="sec" id="s-cal"><h2><i>04</i>Календарь</h2><p class="lead">Дни недели считаются по григорианскому календарю, високосные годы — по правилу 4 / 100 / 400.</p><div class="twocol"><div>';
+  o += '<p class="bdw">Вы родились ' + inWd(c.wdBirth).replace(/^(во?) (.+)$/, '$1 <em>$2</em>') + '</p>';
+  o += '<p class="lead" style="margin-bottom:6px">Следующий день рождения (' + c.nextBd.age + '-й) — через ' + fi(c.nextBd.days) + ' ' + plural(c.nextBd.days, ['день', 'дня', 'дней']) + ', ' + inWd(c.nextBd.wd) + ', ' + fmtC(c.nextBd.c) + (sunday && !isLeap(c.nextBd.c.y) ? ' (в невисокосный год отмечаем 1 марта)' : '') + '.</p>';
+  o += '<div class="facts" style="grid-template-columns:repeat(2,auto);margin-top:14px"><div><b>' + c.leapDays + '</b><span>' + plural(c.leapDays, ['високосный день', 'високосных дня', 'високосных дней']) + ' (29 февраля) в вашей жизни</span></div><div><b>' + fi(c.sat + c.sun) + '</b><span>выходных: ' + fi(c.sat) + ' суббот и ' + fi(c.sun) + ' воскресений</span></div></div>';
+  if (sunday) o += '<p class="lead" style="margin-top:14px">Вы родились 29 февраля, а настоящих дней рождения в свой день у вас было ' + Math.max(0, c.leapDays - 1) + '. Для календаря вам «лет в четыре раза меньше», но все цифры выше — честные.</p>';
+  o += '</div><div><p class="lab">На какие дни недели выпадали ваши дни рождения</p>';
+  if (c.years > 0 || true) o += '<div class="bars">' + order.map(w => '<div class="' + (w === c.wdBirth ? 'me' : '') + '"><b>' + c.bdWd[w] + '</b><i style="height:' + Math.round(c.bdWd[w] / maxb * 82 + 2) + 'px"></i>' + WDS[w] + '</div>').join('') + '</div>';
+  o += '<p class="lead" style="font-size:14px">Считая день рождения при появлении на свет и каждый следующий до сегодняшнего. Красным — день недели, в который вы родились.</p></div></div></section>';
+  /* 05 планеты */
+  o += '<section class="sec" id="s-pl"><h2><i>05</i>Возраст на других планетах</h2><p class="lead">Возраст — это число оборотов вокруг Солнца. У каждой планеты свой год, взят сидерический период обращения.</p><table class="pl"><thead><tr><th>Планета</th><th>Вам там</th><th class="s">Год длится</th><th>Следующий день рождения</th></tr></thead><tbody>';
+  c.planets.forEach(p => { const nd = new Date(c.now + p.next * MS); o += '<tr><td>' + p.n + '</td><td class="a">' + ff(p.age, p.age < 10 ? 2 : p.age < 100 ? 1 : 1) + ' <small>' + 'года' + '</small></td><td class="s">' + ff(p.p, p.p < 1000 ? 1 : 0) + ' сут.</td><td>' + nd.getDate() + ' ' + MG[nd.getMonth()] + ' ' + nd.getFullYear() + '</td></tr>'; });
+  o += '</tbody></table></section>';
+  /* 06 свет */
+  const lb = c.lightBirth, ln = c.lightNow;
+  o += '<section class="sec" id="s-light"><h2><i>06</i>Сезон и длина дня</h2><p class="lead">Считаем для широты ' + ff(S.lat, 2) + '° (' + esc(S.city) + ') по формулам NOAA: склонение Солнца и часовой угол восхода с поправкой на рефракцию.</p><div class="twocol"><div class="light">' + lightSvg() + '<p class="lead" style="font-size:13px;margin:4px 0 0">Часы светового дня по месяцам текущего года.</p></div><div>';
+  o += '<p class="bdw" style="font-size:clamp(26px,2.6vw,36px)">' + cap(lb.season) + '</p><p class="lead">' + lightText(lb, 'В день рождения') + '</p>';
+  o += '<p class="lead">' + lightText(ln, 'Сегодня') + (ln.polar ? '' : ' Каждый день на ' + durSec(ln.delta * 60) + (ln.delta >= 0 ? ' длиннее' : ' короче') + ' предыдущего.') + '</p></div></div></section>';
+  o += '<details class="how"><summary>Как всё это считается</summary><ul><li>Дни — разность номеров дней в григорианском календаре (число дней от 01.01.1970), недели — дни ÷ 7 с округлением вниз.</li><li>День недели — остаток от деления на 7 от четверга 1 января 1970.</li><li>Секунды — разница в миллисекундах от момента рождения (локальное время браузера).</li><li>Сердце и дыхание — средний пульс и частота дыхания по семи возрастным группам × минуты жизни. Это оценка, а не измерение.</li><li>Орбита Земли — эллипс с большой полуосью 149 597 870,7 км и эксцентриситетом 0,0167; круг по широте — 2π·R·cos φ за звёздные сутки 86 164,09 с.</li><li>Фазы Луны — алгоритм Меуса («Astronomical Algorithms», гл. 49), время приведено к UTC с ΔT ≈ 69 с.</li><li>Возраст на планете — земные сутки ÷ сидерический период планеты.</li></ul></details>';
+  o += '<p class="foot">Эти числа не отсчитывают остаток. Это просто линейка, по которой удобно увидеть, сколько всего уже накопилось: лун, километров, дней рождения и обычных вторников.</p>';
+  $('#story').innerHTML = o;
+  paintMoons();
+}
+
+/* ------------ живые счётчики ------------ */
+function setT(id, t) { const e = document.getElementById(id); if (e && e.textContent !== t) e.textContent = t; }
+function tick() {
+  if (document.hidden || !C) return;
+  const now = Date.now();
+  if (new Date(now).getDate() !== C.T.d) { update(); return; }
+  const L = liveVals(C, S, now);
+  setT('lv-sec', fi(L.sec)); setT('lv-beats', fi(L.beats)); setT('lv-breaths', fi(L.breaths)); setT('lv-orbit', fi(L.orbitKm)); setT('lv-rot', fi(L.rotKm)); setT('lv-gal', fi(L.galKm));
+  const up = C.upcoming[0], cd = document.getElementById('cd');
+  if (up && cd) {
+    const d = up.ms - now; if (d <= 0) { update(); return; }
+    const s = Math.floor(d / 1000), dd = Math.floor(s / 86400), r = s % 86400;
+    cd.innerHTML = fi(dd) + '<small>' + plural(dd, ['день', 'дня', 'дней']) + '</small> ' + pad(Math.floor(r / 3600)) + ':' + pad(Math.floor(r % 3600 / 60)) + ':' + pad(r % 60);
+  }
+}
+
+/* ------------ плакат ------------ */
+function fitFont(g, text, maxSize, maxW, face, weight) { let s = maxSize; for (; s > 8; s -= 1) { g.font = (weight || '') + ' ' + s + 'px ' + face; if (g.measureText(text).width <= maxW) break; } return s; }
+function drawPoster(cv, W, H) {
+  cv.width = W; cv.height = H; const g = cv.getContext('2d'), u = W / 1000, c = C, acc = accent(), now = Date.now();
+  g.fillStyle = PAPER; g.fillRect(0, 0, W, H);
+  const T = (s, x, y, font, col, al, ls) => { g.font = font; g.fillStyle = col; g.textAlign = al || 'left'; g.textBaseline = 'alphabetic'; if ('letterSpacing' in g) g.letterSpacing = (ls || 0) + 'px'; g.fillText(s, x, y); if ('letterSpacing' in g) g.letterSpacing = '0px'; };
+  const m = 60 * u, v = liveVals(c, S, now), vit = vitals(c.eDays / YR, S), tall = H / u > 1600, DK = '#3f392f';
+  g.fillStyle = INK; g.fillRect(m, m, W - 2 * m, 2.5 * u);
+  T('ЖИЗНЬ В ЦИФРАХ · ЛИЧНЫЙ ПЛАКАТ', m, m + 38 * u, (17 * u) + 'px ' + LAB, DK, 'left', 3.2 * u);
+  T(S.name || fmtC(c.B), W - m, m + 38 * u, (21 * u) + 'px ' + SERIF, INK, 'right', 0);
+  let big, unit; if (c.years > 0) { big = String(c.years); unit = plural(c.years, ['год', 'года', 'лет']); } else if (c.months > 0) { big = String(c.months); unit = plural(c.months, ['месяц', 'месяца', 'месяцев']); } else { big = String(c.days); unit = plural(c.days, ['день', 'дня', 'дней']); }
+  const bs = (tall ? 250 : 200) * u, base = m + 38 * u + 30 * u + bs * 0.72; g.font = bs + 'px ' + NUM; if ('letterSpacing' in g) g.letterSpacing = (-6 * u) + 'px'; const bw = g.measureText(big).width; if ('letterSpacing' in g) g.letterSpacing = '0px';
+  T(big, m - 6 * u, base, bs + 'px ' + NUM, acc, 'left', -6 * u);
+  const ux = m + bw + 26 * u; T(unit, ux, base, 'italic ' + (64 * u) + 'px ' + SERIF, INK);
+  const rest = []; if (c.years > 0 && c.months > 0) rest.push(c.months + ' ' + plural(c.months, ['месяц', 'месяца', 'месяцев'])); if ((c.years > 0 || c.months > 0) && c.restDays > 0) rest.push(c.restDays + ' ' + plural(c.restDays, ['день', 'дня', 'дней']));
+  const ry = base - 84 * u;
+  if (rest.length) T('и ' + rest.join(' и '), ux, base + 44 * u - 0, 'italic ' + (30 * u) + 'px ' + SERIF, DK);
+  const nx = W - m, ny = m + 38 * u + 70 * u;
+  T('СЛЕДУЮЩИЙ ДЕНЬ РОЖДЕНИЯ', nx, ny, (15 * u) + 'px ' + LAB, DK, 'right', 2 * u);
+  T('через ' + fi(c.nextBd.days) + ' ' + plural(c.nextBd.days, ['день', 'дня', 'дней']), nx, ny + 44 * u, (38 * u) + 'px ' + NUM, INK, 'right');
+  T(inWd(c.nextBd.wd), nx, ny + 44 * u + 32 * u, 'italic ' + (24 * u) + 'px ' + SERIF, DK, 'right');
+  const hdrBottom = base + 96 * u;
+  T('Вы родились ' + inWd(c.wdBirth) + ', ' + fmtC(c.B) + '.', m, hdrBottom, (26 * u) + 'px ' + SERIF, INK);
+  g.fillStyle = RULE; g.fillRect(m, hdrBottom + 24 * u, W - 2 * m, 1.5 * u);
+  const gTop = hdrBottom + 54 * u, bandTop = H - 440 * u, availH = bandTop - gTop - 50 * u;
+  const mode = S.mode, cells = buildCells(mode, effMax()), { cols, n } = cells.sp, rows = Math.ceil(n / cols);
+  const ml = 38 * u, dg = mode === 'weeks' ? 6 * u : 0, extra = mode === 'weeks' ? Math.floor((rows - 1) / 10) * dg : 0;
+  const maxGW = 560 * u; let cw = (maxGW - ml) / cols, ch = Math.min(cw, (availH - extra) / rows); cw = Math.min(cw, ch * 1.6);
+  const gW = ml + cols * cw, gH = rows * ch + extra;
+  drawGrid(g, { cells, mode, x: m + ml, y: gTop, cw, ch, gap: Math.max(1, Math.min(cw, ch) * .16), dgap: dg, fs: 17 * u, mr: 0 });
+  T('клетка — ' + (mode === 'weeks' ? 'неделя' : mode === 'months' ? 'месяц' : 'год') + ', строка — ' + (mode === 'weeks' ? 'год жизни' : mode === 'months' ? 'три года' : 'десять лет'), m + ml, Math.min(gTop + gH + 28 * u, bandTop - 14 * u), (18 * u) + 'px ' + LAB, DK);
+  const rx = m + gW + 56 * u, rw = W - m - rx;
+  const all = [[fi(c.days), 'дней прожито'], [fmtBig(vit.beats), 'ударов сердца, примерно'], [fmtBig(vit.breaths), 'вдохов, примерно'], [fi(c.fullCount), 'полнолуний с рождения'], [fmtBig(v.orbitKm), 'км по орбите вместе с Землёй'], [ff(vit.sleepH / 8760, 1), 'лет сна, примерно'], [ff(c.planets[2].age, 1), 'ваш возраст на Марсе, лет'], [fi(c.sat + c.sun), 'выходных дней']];
+  const facts = all.slice(0, availH > 700 * u ? 8 : 6), fh = Math.min(availH / facts.length, 150 * u);
+  facts.forEach((f, i) => { const y0 = gTop + i * fh; g.fillStyle = i === 0 ? INK : RULE; g.fillRect(rx, y0, rw, (i === 0 ? 2.5 : 1.5) * u); const lab = Math.max(17 * u, fh * .18), fs = fitFont(g, f[0], Math.min(60 * u, fh * .44), rw, NUM); T(f[0], rx, y0 + fh * .1 + fs * .85, fs + 'px ' + NUM, i === 0 ? acc : INK); T(f[1], rx, y0 + fh * .1 + fs * .85 + lab * 1.6, lab + 'px ' + LAB, DK); });
+  g.fillStyle = INK; g.fillRect(m, bandTop, W - 2 * m, 2.5 * u);
+  const mr = 62 * u, mcx = m + mr + 4 * u, mcy = bandTop + 34 * u + mr;
+  drawMoon(g, mcx, mcy, mr, c.moonBirth.p, S.lat < 0);
+  const tx0 = mcx + mr + 34 * u, colW = rx - 36 * u - tx0, up = c.upcoming[0];
+  T('ЛУНА В ДЕНЬ РОЖДЕНИЯ', tx0, mcy - 28 * u, (15 * u) + 'px ' + LAB, DK, 'left', 2.4 * u);
+  const nmx = cap(c.moonBirth.name).replace(/ \(.*\)/, ''); const f1 = fitFont(g, nmx, 32 * u, colW, SERIF); T(nmx, tx0, mcy + 12 * u, f1 + 'px ' + SERIF, INK);
+  T('освещено ' + Math.round(c.moonBirth.ill * 100) + '%', tx0, mcy + 12 * u + 34 * u, (21 * u) + 'px ' + SERIF, DK);
+  if (up) { const dn = localDn(up.ms); T('БЛИЖАЙШЕЕ КРУГЛОЕ ЧИСЛО', rx, mcy - 28 * u, (15 * u) + 'px ' + LAB, DK, 'left', 2.4 * u); const nm = mName(up), f2 = fitFont(g, nm, 36 * u, rw, NUM); T(nm, rx, mcy + 12 * u, f2 + 'px ' + NUM, acc); const dl = fmtDn(dn) + ', ' + WDN[wdOf(dn)], f3 = fitFont(g, dl, 21 * u, rw, SERIF); T(dl, rx, mcy + 12 * u + 34 * u, f3 + 'px ' + SERIF, DK); }
+  const y2 = mcy + mr + 36 * u; g.fillStyle = RULE; g.fillRect(m, y2, W - 2 * m, 1.5 * u);
+  const lines = ['Високосных дней (29 февраля) в вашей жизни: ' + c.leapDays + '.', 'Полных недель: ' + fi(c.weeks) + ', секунд: ' + fi(c.sec) + '.', '«Примерно» — оценка; остальное считано по календарю и астрономии.'];
+  lines.forEach((t, i) => T(t, m, y2 + 50 * u + i * 44 * u, (23 * u) + 'px ' + SERIF, i === 2 ? DK : INK));
+  T('Посчитано ' + fmtDn(c.dT), m, H - 34 * u, (18 * u) + 'px ' + LAB, DK, 'left', 1.2 * u);
+  T('широта ' + ff(S.lat, 1) + '° · Жизнь в цифрах', W - m, H - 34 * u, (18 * u) + 'px ' + LAB, DK, 'right', 1.2 * u);
+  return { gridBottom: gTop + gH, bandTop };
+}
+function download(W, H, name) {
+  if (!C) return; toast('Рисую плакат…');
+  setTimeout(() => {
+    const cv = document.createElement('canvas'); drawPoster(cv, W, H);
+    cv.toBlob(b => { if (!b) { toast('Не удалось сохранить: не хватило памяти'); return; } const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Сохранено: ' + name + ' (' + Math.round(b.size / 1024) + ' КБ)'); window.__lastExport = { name, size: b.size, W, H }; }, 'image/png');
+  }, 30);
+}
+let toastT; function toast(t) { const e = $('#toast'); e.textContent = t; e.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => e.style.display = 'none', 2800); }
+
+/* ------------ форма ------------ */
+function todayIso() { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function syncForm() {
+  $('#fName').value = S.name; $('#fBirth').value = S.birth; $('#fTime').value = S.time; $('#fLat').value = S.lat;
+  $('#fCity').value = S.city; $('#fPulse').value = S.pulse; $('#oPulse').textContent = S.pulse + ' уд/мин'; $('#fSleep').value = S.sleep; $('#oSleep').textContent = ff(S.sleep, 1).replace(',0', '') + ' ч в сутки'; $('#fMax').value = S.max;
+  $$('#fAcc button').forEach((b, i) => b.setAttribute('aria-pressed', i === S.acc));
+  document.documentElement.style.setProperty('--acc', accent());
+  $('#eList').innerHTML = S.events.map((e, i) => '<li>' + e.d.split('-').reverse().join('.') + ' — ' + esc(e.t) + '<button type="button" data-del="' + i + '" aria-label="Удалить событие ' + esc(e.t) + '">×</button></li>').join('');
+}
+function update() {
+  C = compute(S, Date.now());
+  renderStory(); layoutGrid(); tick();
+  document.title = 'Жизнь в цифрах';
+}
+function changed(touch) { if (touch) S.touched = true; save(); update(); }
+function init() {
+  $('#fCity').innerHTML = CITIES.map(c => '<option>' + c[0] + '</option>').join('');
+  $('#fAcc').innerHTML = ACCS.map((a, i) => '<button type="button" data-i="' + i + '" style="background:' + a[0] + '" aria-label="' + a[1] + '" title="' + a[1] + '"></button>').join('');
+  $('#fBirth').max = todayIso();
+  syncForm();
+  $('#fName').addEventListener('input', e => { S.name = e.target.value.slice(0, 24); save(); renderStory(); paintMoons(); tick(); });
+  $('#fBirth').addEventListener('change', e => {
+    const v = e.target.value, t = todayIso();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v) || v < '1900-01-01') { toast('Нужна дата не раньше 1900 года'); e.target.value = S.birth; return; }
+    if (v > t) { toast('Эта дата ещё не наступила — введите прошедшую'); e.target.value = S.birth; return; }
+    S.birth = v; changed(true);
+  });
+  $('#fTime').addEventListener('change', e => { S.time = e.target.value; changed(true); });
+  $('#fCity').addEventListener('change', e => { const c = CITIES.find(x => x[0] === e.target.value); S.city = c[0]; if (c[1] != null) S.lat = c[1]; else $('#fLat').focus(); syncForm(); changed(false); });
+  $('#fLat').addEventListener('change', e => { let v = parseFloat(String(e.target.value).replace(',', '.')); if (isNaN(v)) v = S.lat; v = Math.max(-66, Math.min(80, v)); S.lat = v; const c = CITIES.find(x => x[1] === v); S.city = c ? c[0] : 'Другая широта'; syncForm(); changed(false); });
+  $('#fPulse').addEventListener('input', e => { S.pulse = +e.target.value; $('#oPulse').textContent = S.pulse + ' уд/мин'; save(); renderStory(); paintMoons(); tick(); });
+  $('#fSleep').addEventListener('input', e => { S.sleep = +e.target.value; $('#oSleep').textContent = ff(S.sleep, 1).replace(',0', '') + ' ч в сутки'; save(); renderStory(); paintMoons(); tick(); });
+  $('#fMax').addEventListener('change', e => { S.max = +e.target.value; changed(false); });
+  $('#fAcc').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.acc = +b.dataset.i; syncForm(); save(); renderStory(); layoutGrid(); paintMoons(); tick(); });
+  $('#seg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setMode(b.dataset.m); });
+  $('#eAdd').addEventListener('click', () => {
+    const d = $('#eDate').value, t = $('#eText').value.trim();
+    if (!d || !t) { toast('Укажите дату и название события'); return; }
+    if (S.events.length >= 6) { toast('Достаточно шести событий'); return; }
+    const [y, m, dd] = d.split('-').map(Number);
+    if (dnum(y, m, dd) < C.dB || dnum(y, m, dd) >= cellDn('years', effMax())) { toast('Дата вне сетки — до рождения или за её границей'); return; }
+    S.events.push({ d, t: t.slice(0, 22) }); $('#eText').value = ''; syncForm(); changed(false);
+  });
+  $('#eList').addEventListener('click', e => { const b = e.target.closest('button[data-del]'); if (b) { S.events.splice(+b.dataset.del, 1); syncForm(); changed(false); } });
+  $('#bA3').addEventListener('click', () => download(2339, 3307, 'zhizn_plakat_A3.png'));
+  $('#bStory').addEventListener('click', () => download(1080, 1920, 'zhizn_1080x1920.png'));
+  $('#bReset').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch (e) { } S = JSON.parse(JSON.stringify(DEF)); syncForm(); update(); toast('Всё сброшено к примеру'); });
+  $('#bHelp').addEventListener('click', () => $('#help').classList.add('on'));
+  $('#bHelpX').addEventListener('click', () => $('#help').classList.remove('on'));
+  $('#help').addEventListener('click', e => { if (e.target.id === 'help') $('#help').classList.remove('on'); });
+  const gc = $('#grid'), tip = $('#tip');
+  const showTip = e => { const i = gridHit(e); if (i < 0) { tip.style.display = 'none'; return; } tip.innerHTML = tipText(i); tip.style.display = 'block'; tip.style.left = Math.min(innerWidth - 270, e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 16) + 'px'; };
+  gc.addEventListener('mousemove', showTip); gc.addEventListener('mouseleave', () => tip.style.display = 'none'); gc.addEventListener('click', showTip);
+  addEventListener('keydown', e => {
+    if (e.key === 'Escape') { $('#help').classList.remove('on'); return; }
+    if (/INPUT|SELECT|TEXTAREA/.test((e.target.tagName || '')) || e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === 'g' || k === 'п') setMode(S.mode === 'weeks' ? 'months' : S.mode === 'months' ? 'years' : 'weeks');
+    else if (k === 'p' || k === 'з') download(2339, 3307, 'zhizn_plakat_A3.png');
+    else if (k === 's' || k === 'ы') download(1080, 1920, 'zhizn_1080x1920.png');
+    else if (k === 'd' || k === 'в') { $('#fBirth').focus(); scrollTo(0, 0); }
+    else if (e.key === '?') $('#help').classList.toggle('on');
+  });
+  let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(layoutGrid, 120); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+  update(); setInterval(tick, 100);
+  if (!S.touched && matchMedia('(min-width:901px)').matches) { /* стартуем с готовым примером */ }
+}
+function setMode(m) { S.mode = m; save(); layoutGrid(); }
+window.__zh = { get C() { return C; }, get S() { return S; }, drawPoster, update, compute, setS(o) { Object.assign(S, o); syncForm(); changed(true); }, get G() { return G; } };
+init();
+
+</script>
+</body>
+</html>

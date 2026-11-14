@@ -54,6 +54,7 @@ kbd{font:600 12px Consolas,monospace;border:1px solid var(--soft);padding:1px 6p
 <footer>Поиск — <kbd>/</kbd>, первая карточка — <kbd>Enter</kbd>, случайная — <kbd>R</kbd>. Работы сохраняются в этом браузере на этом компьютере.</footer>
 </div>
 <script>
+const WIP=new Set(["19_sprite"]);
 const APPS=[
 ["01_atlas","Атлас несуществующих земель","генератор","Карта выдуманного мира как в старинном атласе: реки, горы, страны, города с названиями и справкой."],
 ["02_radio","Радио «Эфир»","звук","Ламповый приёмник. Крутишь ручку — сквозь шипение ловятся станции, музыка которых сочиняется на ходу."],
@@ -76,7 +77,6 @@ const APPS=[
 ["19_sprite","Спрайтодел","генератор","Фабрика пиксельных кораблей и монстров. Оживают, скрещиваются, сохраняются в GIF."],
 ["20_mashinka","Пишущая машинка","машина","Стучит, звенит, клинит и не умеет стирать. Готовый лист сохраняется как скан."]
 ];
-const WIP=new Set(["15_podzemelie","18_zhizn","19_sprite"]);
 const kinds=["все",...new Set(APPS.map(a=>a[2]))];
 let kind="все",q="";
 const bar=document.getElementById("bar"),grid=document.getElementById("grid"),empty=document.getElementById("empty");
